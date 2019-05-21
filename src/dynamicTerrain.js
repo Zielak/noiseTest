@@ -219,7 +219,7 @@ class DynamicTerrain {
       deltaNbSubX > 0 ? Math.floor(deltaNbSubX) : Math.ceil(deltaNbSubX)
     this._deltaSubZ =
       deltaNbSubZ > 0 ? Math.floor(deltaNbSubZ) : Math.ceil(deltaNbSubZ)
-    this._scene.onBeforeRenderObservable.add(function () {
+    this._scene.onBeforeRenderObservable.add(function() {
       var refreshEveryFrame = _this._refreshEveryFrame
       _this.beforeUpdate(refreshEveryFrame)
       _this.update(refreshEveryFrame)
@@ -1017,7 +1017,7 @@ class DynamicTerrain {
     var offsetZ = options.offsetZ || 0.0
     var filter = options.colorFilter || new Color3(0.3, 0.59, 0.11)
     var onReady = options.onReady
-    var onload = function (img) {
+    var onload = function(img) {
       // Getting height map data
       var canvas = document.createElement("canvas")
       var context = canvas.getContext("2d")
@@ -1059,7 +1059,7 @@ class DynamicTerrain {
         onReady(data, subX, subZ)
       }
     }
-    Tools.LoadImage(heightmapURL, onload, function () { }, scene.offlineProvider)
+    Tools.LoadImage(heightmapURL, onload, function() {}, scene.offlineProvider)
   }
   /**
    * Static : Updates the passed arrays with UVs values to fit the whole map with subX points along its width and subZ points along its height.
@@ -1286,7 +1286,7 @@ class DynamicTerrain {
     return this._LODLimits
   }
   set LODLimits(ar) {
-    ar.sort(function (a, b) {
+    ar.sort(function(a, b) {
       return b - a
     })
     this._LODLimits = ar

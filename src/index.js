@@ -1,7 +1,7 @@
 // import { } from '@babylonjs/core'
 import { Engine } from "@babylonjs/core/Engines/engine"
 import { Scene } from "@babylonjs/core/scene"
-import { Vector3 } from "@babylonjs/core/Maths/math"
+import { Vector3, Color3 } from "@babylonjs/core/Maths/math"
 import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera"
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight"
 import { Mesh } from "@babylonjs/core/Meshes/mesh"
@@ -10,79 +10,109 @@ import { GridMaterial } from "@babylonjs/materials/grid"
 
 import DynamicTerrain from "./dynamicTerrain"
 
-import generateTerrain from "./terrain"
-import { project } from "./renderer"
+const mapSizeX = 500
+const mapSizeZ = 500
 
 // Required side effects to populate the Create methods on the mesh class. Without this, the bundle would be smaller but the createXXX methods from mesh would not be accessible.
 import "@babylonjs/core/Meshes/meshBuilder"
 
-// Get the canvas element from the DOM.
 const canvas = document.getElementById("renderCanvas")
-
-// Associate a Babylon Engine to it.
 const engine = new Engine(canvas)
-
-// Create our first scene.
 var scene = new Scene(engine)
 
-// This creates and positions a free camera (non-mesh)
-var camera = new FreeCamera("camera1", Vector3.Zero(), scene)
+const cameraOrigin = new Vector3(mapSizeX / 2, 0, mapSizeZ / 2)
+const camera = new FreeCamera("camera1", cameraOrigin.clone(), scene)
 camera.speed = 1.1
 
 // This targets the camera to scene origin
 camera.setTarget(new Vector3(10, 0, 10))
-
-// This attaches the camera to the canvas
 camera.attachControl(canvas, true)
 
 // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
-var light = new HemisphericLight("light1", new Vector3(0, 1, 0), scene)
-
-// Default intensity is 1. Let's dim the light a small amount
+var light = new HemisphericLight("light1", new Vector3(3, 10, 9), scene)
 light.intensity = 0.7
+light.specular = new Color3(0.1, 0.3, 0.7)
 
 // Create a grid material
-var gridMaterial = new GridMaterial("grid", scene)
+const gridMaterial = new GridMaterial("grid", scene)
 gridMaterial.wireframe = true
 
-// Our built-in 'sphere' shape. Params: name, subdivs, size, scene
-var sphere = Mesh.CreateSphere("sphere1", 16, 2, scene)
+/**
+ * @type {DynamicTerrain}
+ */
+let terrain
+/**
+ * @type {Vector3}
+ */
+let preTerrainCamPos
 
-// Move the sphere upward 1/2 its height
-sphere.position.y = 2
+let traveledX = 0
+let traveledZ = 0
 
-// Affect a material
-sphere.material = gridMaterial
+let inited = false
 
-// Our built-in 'ground' shape. Params: name, width, depth, subdivs, scene
-// var ground = Mesh.CreateGround("ground1", 6, 6, 2, scene);
+const init = initialData => {
+  console.log("\tinit")
+  const mapOptions = {
+    camera,
+    mapData: initialData,
+    mapSubX: mapSizeX,
+    mapSubZ: mapSizeZ,
+    terrainSub: 250 // the terrain wil be 100x100 vertices only
+  }
 
-const mapSubX = 500
-const mapSubZ = 500
-const mapParams = {
-  mapData: generateTerrain(mapSubX, mapSubZ),
-  mapSubX,
-  mapSubZ,
-  terrainSub: 500 // the terrain wil be 100x100 vertices only
+  console.log("\tcreating Terrain")
+  terrain = new DynamicTerrain("terrain", mapOptions, scene)
+  terrain.mesh.material = gridMaterial
+  terrain.subToleranceX = 16
+  terrain.subToleranceZ = 16
+  // terrain.LODLimits = [4, 3, 2, 1, 1]
+  terrain.LODLimits = [4, 4, 4, 4, 4]
+
+  const camElevation = 4.0
+  scene.registerBeforeRender(() => {
+    camera.position.y =
+      terrain.getHeightFromMap(camera.position.x, camera.position.z) +
+      camElevation
+  })
 }
 
-const terrain = new DynamicTerrain("terrain", mapParams, scene)
-terrain.mesh.material = gridMaterial
-terrain.subToleranceX = 16
-terrain.subToleranceZ = 16
-terrain.LODLimits = [4, 3, 2, 1, 1]
+const terrainProvider = new Worker("./terrain.worker.js")
 
-// Affect a material
-// ground.material = material
+terrainProvider.onmessage = e => {
+  if (!inited) {
+    inited = true
+    init(e.data.mapData)
+  }
+
+  console.log(" => Got data from terrain worker", {
+    baseX: e.data.baseX,
+    baseY: e.data.baseY
+  })
+  terrain.mapData = e.data.mapData
+  camera.position.x = cameraOrigin.x - (preTerrainCamPos.x - camera.position.x)
+  camera.position.z = cameraOrigin.z - (preTerrainCamPos.z - camera.position.z)
+
+  setTimeout(() => getNewTerrain(), 3000)
+}
+
+const getNewTerrain = () => {
+  console.log(" <= requesting new terrain...")
+  traveledX -= cameraOrigin.x - camera.position.x
+  traveledZ -= cameraOrigin.z - camera.position.z
+  preTerrainCamPos = camera.position.clone()
+
+  terrainProvider.postMessage({
+    type: "generateTerrain",
+    sizeX: mapSizeX,
+    sizeY: mapSizeZ,
+    baseX: traveledX,
+    baseY: traveledZ
+  })
+}
+getNewTerrain()
 
 // Render every frame
 engine.runRenderLoop(() => {
   scene.render()
-})
-
-const camElevation = 2.0
-scene.registerBeforeRender(() => {
-  camera.position.y =
-    terrain.getHeightFromMap(camera.position.x, camera.position.z) +
-    camElevation
 })
