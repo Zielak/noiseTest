@@ -8,16 +8,14 @@
     "build": "webpack --mode development --devtool source-map"
   },
   "dependencies": {
-    "@babel/plugin-proposal-class-properties": "^7.4.4",
     "@babylonjs/core": "^4.0.3",
-    "@babylonjs/extensions": "https://github.com/BabylonJS/Extensions.git",
     "@babylonjs/materials": "^4.0.3",
-    "parcel": "^1.12.3",
-    "parceljs": "^0.0.1",
-    "ramda": "^0.26.1",
     "simplex-noise": "^2.4.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.4.4"
+    "@babel/core": "^7.4.4",
+    "@babel/plugin-proposal-class-properties": "^7.4.4",
+    "parcel": "^1.12.3",
+    "ramda": "^0.26.1"
   }
 }

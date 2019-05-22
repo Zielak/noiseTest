@@ -743,10 +743,6 @@
   dependencies:
     tslib "^1.9.3"
 
-"@babylonjs/extensions@https://github.com/BabylonJS/Extensions.git":
-  version "0.0.0"
-  resolved "https://github.com/BabylonJS/Extensions.git#674c88b88f10751e0522d3d4182dca36ee1b080a"
-
 "@babylonjs/materials@^4.0.3":
   version "4.0.3"
   resolved "https://registry.yarnpkg.com/@babylonjs/materials/-/materials-4.0.3.tgz#77d1f296a328db2e1dec831c1297261b0e9bdc75"
@@ -3617,11 +3613,6 @@ parcel@^1.12.3:
     terser "^3.7.3"
     v8-compile-cache "^2.0.0"
     ws "^5.1.1"
-
-parceljs@^0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/parceljs/-/parceljs-0.0.1.tgz#70c596613e365fd4cd380316566b72990e19f58e"
-  integrity sha512-xbAtX3nhxitWdiuL4q3FAiZ21hO45N33iZBPg79hat0AnX9NserDl/FyroFrzaPNBDK+YVXs/CXKbMv6bc0wcw==
 
 parse-asn1@^5.0.0:
   version "5.1.4"
