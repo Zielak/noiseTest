@@ -3,27 +3,43 @@ import SimplexNoise from "simplex-noise"
 const seed1 = new SimplexNoise(Math.random())
 const seed2 = new SimplexNoise(Math.random())
 
-const layers = {
-  base: (x, y) =>
-    seed1.noise2D(x / 2000, y / 2000) * seed2.noise2D(x / 1000, y / 1000) * 4,
-  simpleNoise: (x, y) =>
-    seed1.noise2D(x / 40, y / 40) *
-    0.4 *
-    Math.min(0, seed1.noise2D(x / 400, y / 400)),
-  sineWaves: (x, y) => {
-    const tmpSineWaves = seed1.noise2D(y / 2000, x / 2000)
+function ridgenoise(nx, ny) {
+  return 2 * (0.5 - Math.abs(0.5 - seed1.noise2D(nx, ny)))
+}
 
+const layers = {
+  // base: (x, y) =>
+  //   seed1.noise2D(x / 2000, y / 2000) * seed2.noise2D(x / 1000, y / 1000) * 4
+  base: (x, y) => {
+    const aplitude = seed1.noise2D(y / 3000, x / 3000) / 2 + 0.5
+    const scale = 2000
+
+    const e0 = 1 * ridgenoise((1 * x) / scale, (1 * y) / scale)
+    const e1 = 0.5 * ridgenoise((2 * x) / scale, (2 * y) / scale) * e0
+    const e2 = 0.25 * ridgenoise((4 * x) / scale, (4 * y) / scale) * (e0 + e1)
+    const e = e0 + e1 + e2
+    return Math.pow(e, 3) * aplitude
+  },
+  lumpsOfSmallBumps: (x, y) => {
     return (
-      seed1.noise2D(
-        Math.sin(seed2.noise2D(x / 300, y / 150)),
-        Math.sin(seed2.noise2D(x / 150, y / 300))
-      ) *
-      tmpSineWaves *
-      0.3
+      ridgenoise(x / 40, y / 40) *
+      Math.min(0, seed1.noise2D(x / 400, y / 400)) *
+      0.1
+    )
+  },
+  sineWidePerturbances: (x, y) => {
+    return (
+      Math.max(
+        seed1.noise2D(
+          Math.sin(seed1.noise2D(x / 1200, y / 200)),
+          Math.sin(seed2.noise2D(x / 200, y / 1200))
+        ),
+        0
+      ) * 0.2
     )
   },
   dirtDetail: (x, y) => {
-    const tmpSandSmoothnes = Math.max(0, seed2.noise2D(x / 500, y / 500)) * 0.06
+    const tmpSandSmoothnes = Math.max(0, seed2.noise2D(x / 200, y / 200)) * 0.1
     const tmpSandWaves1 = seed1.noise2D(y / 500, x / 500)
     const tmpSandWaves2 = seed2.noise2D(y / 500, x / 500)
 
@@ -38,6 +54,10 @@ const layers = {
 
 // TODO: LOD
 const generateTerrain = (sizeX = 100, sizeY = 100, baseX = 0, baseY = 0) => {
+  // Accomodate for the gaps between sectors
+  sizeX++
+  sizeY++
+
   const points = new Float32Array(sizeX * sizeY * 3)
   for (let Y = 0; Y <= sizeY; Y++) {
     for (let X = 0; X <= sizeX; X++) {

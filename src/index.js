@@ -18,8 +18,8 @@ const canvas = document.getElementById("renderCanvas")
 const engine = new Engine(canvas)
 var scene = new Scene(engine)
 
-const camera = new FreeCamera("camera1", new Vector3(-200, 20, -200), scene)
-camera.speed = 1.1
+const camera = new FreeCamera("camera1", new Vector3(0, 20, 0), scene)
+camera.speed = 1.5
 
 // This targets the camera to scene origin
 camera.setTarget(new Vector3(0, -50, 0))
@@ -34,7 +34,7 @@ light.specular = new Color3(0.1, 0.3, 0.7)
 const gridMaterial = new GridMaterial("grid", scene)
 gridMaterial.wireframe = true
 
-const terrainController = new TerrainController(50, 50, scene)
+const terrainController = new TerrainController(scene, 100, 100, 2)
 
 setInterval(() => {
   terrainController.updatePlayerPosition(camera.position.clone())

@@ -6,7 +6,7 @@ class TerrainController {
   /**
    * @type {number}
    */
-  viewDistance = 5
+  viewDistance
 
   /**
    * @type {number}
@@ -34,11 +34,12 @@ class TerrainController {
    * @param {number} sectorSizeY
    * @param {Scene} scene
    */
-  constructor(sectorSizeX, sectorSizeY, scene) {
+  constructor(scene, sectorSizeX = 100, sectorSizeY = 100, viewDistance = 3) {
     this.sectorSizeX = sectorSizeX
     this.sectorSizeY = sectorSizeY
     this.halfSectorSizeX = sectorSizeX / 2
     this.halfSectorSizeY = sectorSizeY / 2
+    this.viewDistance = viewDistance
     this.scene = scene
 
     const camElevation = 4.0
@@ -90,9 +91,16 @@ class TerrainController {
     const gotChange = this.didPlayerChangeSector(position)
     if (gotChange) {
       // Remember new position
-      this.lastPlayerPosition = position
+      this.lastPlayerPosition = position.clone()
 
       // Load up new sectors
+      this.sectorsMap
+        .getEmptySpotsInRadius(
+          this.currentSectorX,
+          this.currentSectorY,
+          this.viewDistance
+        )
+        .forEach(vec => this.requestNewSector(vec.x, vec.y))
     }
   }
 
@@ -102,8 +110,12 @@ class TerrainController {
    * @returns {Vector2} or undefined if player is still in the same spot
    */
   didPlayerChangeSector(position) {
-    const secX = Math.floor(position.x / this.sectorSizeX)
-    const secY = Math.floor(position.y / this.sectorSizeY)
+    const secX = Math.floor(
+      (position.x - this.halfSectorSizeX) / this.sectorSizeX
+    )
+    const secY = Math.floor(
+      (position.z - this.halfSectorSizeY) / this.sectorSizeY
+    )
 
     if (secX !== this.currentSectorX || secY !== this.currentSectorY) {
       return new Vector2(secX - this.currentSectorX, secY - this.currentSectorY)
@@ -120,14 +132,16 @@ class TerrainController {
       pathArray: this.parseMapData(e.data.mapData)
     }
 
-    const g = MeshBuilder.CreateRibbon(
+    const terrain = MeshBuilder.CreateRibbon(
       `sector_${e.data.sectorX},${e.data.sectorY}`,
       ribbonOptions,
       this.scene
     )
-    g.position.x = e.data.sectorX * this.sectorSizeX
-    g.position.z = e.data.sectorY * this.sectorSizeY
-    g.setMaterialByID("grid")
+    terrain.position.x = e.data.sectorX * this.sectorSizeX
+    terrain.position.z = e.data.sectorY * this.sectorSizeY
+    terrain.setMaterialByID("grid")
+
+    this.sectorsMap.addSector(e.data.sectorX, e.data.sectorY, terrain)
 
     // terrain.mapData = e.data.mapData
     // camera.position.x =
@@ -144,7 +158,8 @@ class TerrainController {
   parseMapData(data) {
     const result = [[]]
 
-    const max = data.length
+    const maxX = this.sectorSizeX + 1
+    const maxY = this.sectorSizeY + 1
     let x = 0
     let y = 0
     let index = 0
@@ -154,16 +169,16 @@ class TerrainController {
     while (!finished) {
       result[y].push(new Vector3(data[index], data[index + 2], data[index + 1]))
       x++
-      if (x >= this.sectorSizeX) {
+      if (x >= maxX) {
         y++
-        if (y >= this.sectorSizeY) {
+        if (y >= maxY) {
           finished = true
           break
         }
         result[y] = []
         x = 0
       }
-      index = x * 3 + y * 3 * this.sectorSizeY
+      index = x * 3 + y * 3 * (this.sectorSizeY + 1)
     }
 
     return result
@@ -182,7 +197,7 @@ class TerrainController {
   // TODO: Memoize
   get currentSectorY() {
     return Math.floor(
-      (this.lastPlayerPosition.y - this.halfSectorSizeY) / this.sectorSizeY
+      (this.lastPlayerPosition.z - this.halfSectorSizeY) / this.sectorSizeY
     )
   }
 }
