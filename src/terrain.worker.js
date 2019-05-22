@@ -9,7 +9,7 @@ function ridgenoise(nx, ny) {
 
 const layers = {
   base: (x, y) =>
-    seed1.noise2D(x / 10000, y / 10000) * seed2.noise2D(x / 2000, y / 2000) * 4,
+    seed1.noise2D(x / 10000, y / 10000) * seed2.noise2D(x / 2000, y / 2000) * 5,
   baseRidged: (x, y) => {
     const aplitude = seed1.noise2D(y / 3000, x / 3000) / 2 + 0.5
     const scale = 2000
@@ -52,13 +52,31 @@ const layers = {
   }
 }
 
+/**
+ *
+ * @param {Float32Array} points
+ */
+const calculateUnevenness = (points, step = 2) => {
+  step = Math.round(step)
+  let min = points[0]
+  let max = points[0]
+  let curr = 0
+  const loopLimit = points.length - step
+  for (let i = 0; i < loopLimit; i += step) {
+    curr = points[i]
+    if (curr < min) min = curr
+    if (curr > max) max = curr
+  }
+  return Math.abs(max - min) / 100
+}
+
 // TODO: LOD
 const generateTerrain = (sizeX = 100, sizeY = 100, baseX = 0, baseY = 0) => {
   // Accomodate for the gaps between sectors
   sizeX++
   sizeY++
 
-  const points = new Float32Array(sizeX * sizeY)
+  const pointValues = new Float32Array(sizeX * sizeY)
   for (let Y = 0; Y <= sizeY; Y++) {
     for (let X = 0; X <= sizeX; X++) {
       const x = X + baseX
@@ -68,10 +86,14 @@ const generateTerrain = (sizeX = 100, sizeY = 100, baseX = 0, baseY = 0) => {
           .map(func => func(x, y))
           .reduce((prev, curr) => prev + curr, 0) * 15
 
-      points[Y * sizeX + X] = z
+      pointValues[Y * sizeX + X] = z
     }
   }
-  return points
+
+  return {
+    pointValues,
+    uneveneness: calculateUnevenness(pointValues, (sizeX * sizeY) / 1000)
+  }
 }
 
 self.onmessage = e => {
@@ -83,9 +105,10 @@ self.onmessage = e => {
       e.data.sectorY * e.data.sizeY
     )
     self.postMessage({
-      mapData,
+      pointValues: mapData.pointValues,
       sectorX: e.data.sectorX,
-      sectorY: e.data.sectorY
+      sectorY: e.data.sectorY,
+      uneveneness: mapData.uneveneness
     })
   }
 }

@@ -12,17 +12,21 @@ class SectorsMap {
 
   /**
    *
-   * @param {number} x
-   * @param {number} y
    * @param {TerrainSector} sector
    */
-  addSector(x, y, sector) {
-    if (!this.sectors[y]) {
-      this.sectors[y] = []
+  addSector(sector) {
+    if (!this.sectors[sector.y]) {
+      this.sectors[sector.y] = []
     }
-    this.sectors[y][x] = sector
+    this.sectors[sector.y][sector.x] = sector
   }
 
+  /**
+   *
+   * @param {number} x
+   * @param {number} y
+   * @returns {TerrainSector}
+   */
   getSector(x, y) {
     if (this.sectors[y]) {
       return this.sectors[y][x]

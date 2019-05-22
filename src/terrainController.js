@@ -125,55 +125,72 @@ class TerrainController {
   }
 
   handleWorkerMessage(e) {
-    console.log(` => Got data [${e.data.mapData.length / 3} points]`, {
-      sectorX: e.data.sectorX,
-      sectorY: e.data.sectorY
-    })
+    const { uneveneness, sectorX, sectorY, pointValues } = e.data
 
     const terrainLOD0 = MeshBuilder.CreateRibbon(
-      `sector_${e.data.sectorX},${e.data.sectorY},LOD0`,
+      `sector_${sectorX},${sectorY},LOD0`,
       {
-        pathArray: this.parseMapData(e.data.mapData)
+        sideOrientation: Mesh.BACKSIDE,
+        pathArray: this.parseMapData(pointValues)
       },
       this.scene
     )
     const terrainLOD1 = MeshBuilder.CreateRibbon(
-      `sector_${e.data.sectorX},${e.data.sectorY},LOD1`,
+      `sector_${sectorX},${sectorY},LOD1`,
       {
-        pathArray: this.parseMapData(e.data.mapData, 2)
+        sideOrientation: Mesh.BACKSIDE,
+        pathArray: this.parseMapData(pointValues, 2)
       },
       this.scene
     )
     const terrainLOD2 = MeshBuilder.CreateRibbon(
-      `sector_${e.data.sectorX},${e.data.sectorY},LOD2`,
+      `sector_${sectorX},${sectorY},LOD2`,
       {
-        pathArray: this.parseMapData(e.data.mapData, 4)
+        sideOrientation: Mesh.BACKSIDE,
+        pathArray: this.parseMapData(pointValues, 4)
       },
       this.scene
     )
     const terrainLOD3 = MeshBuilder.CreateRibbon(
-      `sector_${e.data.sectorX},${e.data.sectorY},LOD3`,
+      `sector_${sectorX},${sectorY},LOD3`,
       {
-        pathArray: this.parseMapData(e.data.mapData, 10)
+        sideOrientation: Mesh.BACKSIDE,
+        pathArray: this.parseMapData(pointValues, 10)
       },
       this.scene
     )
 
-    const lodBase = this.halfSectorSizeX + this.halfSectorSizeY
+    // The more ground is unevenen, the more detail needs to be seeeen
+    const lodBase = (this.halfSectorSizeX + this.halfSectorSizeY) / 1.5
+    const exp = uneveneness + 1
 
-    terrainLOD0.addLODLevel(lodBase * 1, terrainLOD1)
-    terrainLOD0.addLODLevel(lodBase * 2, terrainLOD2)
-    terrainLOD0.addLODLevel(lodBase * 4, terrainLOD3)
-    terrainLOD0.addLODLevel(lodBase * 16, null)
+    const LODs = [
+      lodBase * (2 * exp),
+      lodBase * (4 * exp),
+      lodBase * (8 * exp),
+      lodBase * (16 * (exp * exp))
+    ]
 
-    terrainLOD0.position.x = e.data.sectorX * this.sectorSizeX
-    terrainLOD0.position.z = e.data.sectorY * this.sectorSizeY
+    terrainLOD0.addLODLevel(LODs[0], terrainLOD1)
+    terrainLOD0.addLODLevel(LODs[1], terrainLOD2)
+    terrainLOD0.addLODLevel(LODs[2], terrainLOD3)
+    terrainLOD0.addLODLevel(LODs[3], null)
+
+    terrainLOD0.position.x = sectorX * this.sectorSizeX
+    terrainLOD0.position.z = sectorY * this.sectorSizeY
     terrainLOD0.setMaterialByID("grid")
     terrainLOD1.setMaterialByID("grid")
     terrainLOD2.setMaterialByID("grid")
     terrainLOD3.setMaterialByID("grid")
 
-    this.sectorsMap.addSector(e.data.sectorX, e.data.sectorY, terrainLOD0)
+    this.sectorsMap.addSector(
+      new TerrainSector(sectorX, sectorY, terrainLOD0, pointValues)
+    )
+    console.log(
+      ` => Got data [${sectorX},${sectorY}] lods:${LODs.map(num =>
+        num.toFixed(2)
+      ).join(", ")}; uneveneness: ${uneveneness.toFixed(4)}`
+    )
   }
 
   /**
@@ -210,6 +227,21 @@ class TerrainController {
     }
 
     return result
+  }
+
+  getSectorFromPosition(x, z) {
+    return new Vector2(
+      Math.floor((x - this.halfSectorSizeX) / this.sectorSizeX),
+      Math.floor((z - this.halfSectorSizeY) / this.sectorSizeY)
+    )
+  }
+
+  // FIXME: yup
+  getHeightFromMap(posX, posZ) {
+    const sectorPlz = this.getSectorFromPosition(posX, posZ)
+    return this.sectorsMap
+      .getSector(sectorPlz.x, sectorPlz.y)
+      .getHeight(posX, posZ)
   }
 
   get availableWorker() {

@@ -19,7 +19,7 @@ const camera = new FreeCamera("camera1", new Vector3(0, 20, 0), scene)
 camera.speed = 1.5
 
 // This targets the camera to scene origin
-camera.setTarget(new Vector3(0, -50, 0))
+camera.setTarget(new Vector3(-10, 16, -10))
 camera.attachControl(canvas, true)
 
 // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
@@ -29,9 +29,9 @@ light.specular = new Color3(0.1, 0.3, 0.7)
 
 // Create a grid material
 const gridMaterial = new GridMaterial("grid", scene)
-gridMaterial.wireframe = true
+// gridMaterial.wireframe = true
 
-const terrainController = new TerrainController(scene, 100, 100, 4)
+const terrainController = new TerrainController(scene, 100, 100, 6)
 
 setInterval(() => {
   terrainController.updatePlayerPosition(camera.position.clone())
@@ -41,3 +41,10 @@ setInterval(() => {
 engine.runRenderLoop(() => {
   scene.render()
 })
+
+// const camElevation = 2.0
+// scene.registerBeforeRender(() => {
+//   camera.position.y =
+//     terrainController.getHeightFromMap(camera.position.x, camera.position.z) +
+//     camElevation
+// })
