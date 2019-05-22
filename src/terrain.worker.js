@@ -8,9 +8,9 @@ function ridgenoise(nx, ny) {
 }
 
 const layers = {
-  // base: (x, y) =>
-  //   seed1.noise2D(x / 2000, y / 2000) * seed2.noise2D(x / 1000, y / 1000) * 4
-  base: (x, y) => {
+  base: (x, y) =>
+    seed1.noise2D(x / 10000, y / 10000) * seed2.noise2D(x / 2000, y / 2000) * 4,
+  baseRidged: (x, y) => {
     const aplitude = seed1.noise2D(y / 3000, x / 3000) / 2 + 0.5
     const scale = 2000
 
@@ -58,7 +58,7 @@ const generateTerrain = (sizeX = 100, sizeY = 100, baseX = 0, baseY = 0) => {
   sizeX++
   sizeY++
 
-  const points = new Float32Array(sizeX * sizeY * 3)
+  const points = new Float32Array(sizeX * sizeY)
   for (let Y = 0; Y <= sizeY; Y++) {
     for (let X = 0; X <= sizeX; X++) {
       const x = X + baseX
@@ -68,9 +68,7 @@ const generateTerrain = (sizeX = 100, sizeY = 100, baseX = 0, baseY = 0) => {
           .map(func => func(x, y))
           .reduce((prev, curr) => prev + curr, 0) * 15
 
-      points[3 * (Y * sizeX + X)] = x - baseX
-      points[3 * (Y * sizeX + X) + 1] = y - baseY
-      points[3 * (Y * sizeX + X) + 2] = z
+      points[Y * sizeX + X] = z
     }
   }
   return points

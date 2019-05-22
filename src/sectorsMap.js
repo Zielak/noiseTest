@@ -2,6 +2,10 @@ import { TerrainSector } from "./sector"
 import { Vector2 } from "@babylonjs/core"
 
 class SectorsMap {
+  /**
+   * @type {TerrainSector[]}
+   */
+  sectors
   constructor() {
     this.sectors = []
   }

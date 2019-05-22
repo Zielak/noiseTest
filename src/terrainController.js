@@ -101,6 +101,8 @@ class TerrainController {
           this.viewDistance
         )
         .forEach(vec => this.requestNewSector(vec.x, vec.y))
+
+      // TODO: Decide to ditch out of view sectors
     }
   }
 
@@ -128,34 +130,60 @@ class TerrainController {
       sectorY: e.data.sectorY
     })
 
-    const ribbonOptions = {
-      pathArray: this.parseMapData(e.data.mapData)
-    }
-
-    const terrain = MeshBuilder.CreateRibbon(
-      `sector_${e.data.sectorX},${e.data.sectorY}`,
-      ribbonOptions,
+    const terrainLOD0 = MeshBuilder.CreateRibbon(
+      `sector_${e.data.sectorX},${e.data.sectorY},LOD0`,
+      {
+        pathArray: this.parseMapData(e.data.mapData)
+      },
       this.scene
     )
-    terrain.position.x = e.data.sectorX * this.sectorSizeX
-    terrain.position.z = e.data.sectorY * this.sectorSizeY
-    terrain.setMaterialByID("grid")
+    const terrainLOD1 = MeshBuilder.CreateRibbon(
+      `sector_${e.data.sectorX},${e.data.sectorY},LOD1`,
+      {
+        pathArray: this.parseMapData(e.data.mapData, 2)
+      },
+      this.scene
+    )
+    const terrainLOD2 = MeshBuilder.CreateRibbon(
+      `sector_${e.data.sectorX},${e.data.sectorY},LOD2`,
+      {
+        pathArray: this.parseMapData(e.data.mapData, 4)
+      },
+      this.scene
+    )
+    const terrainLOD3 = MeshBuilder.CreateRibbon(
+      `sector_${e.data.sectorX},${e.data.sectorY},LOD3`,
+      {
+        pathArray: this.parseMapData(e.data.mapData, 10)
+      },
+      this.scene
+    )
 
-    this.sectorsMap.addSector(e.data.sectorX, e.data.sectorY, terrain)
+    const lodBase = this.halfSectorSizeX + this.halfSectorSizeY
 
-    // terrain.mapData = e.data.mapData
-    // camera.position.x =
-    //   cameraOrigin.x - (preTerrainCamPos.x - camera.position.x)
-    // camera.position.z =
-    //   cameraOrigin.z - (preTerrainCamPos.z - camera.position.z)
+    terrainLOD0.addLODLevel(lodBase * 1, terrainLOD1)
+    terrainLOD0.addLODLevel(lodBase * 2, terrainLOD2)
+    terrainLOD0.addLODLevel(lodBase * 4, terrainLOD3)
+    terrainLOD0.addLODLevel(lodBase * 16, null)
+
+    terrainLOD0.position.x = e.data.sectorX * this.sectorSizeX
+    terrainLOD0.position.z = e.data.sectorY * this.sectorSizeY
+    terrainLOD0.setMaterialByID("grid")
+    terrainLOD1.setMaterialByID("grid")
+    terrainLOD2.setMaterialByID("grid")
+    terrainLOD3.setMaterialByID("grid")
+
+    this.sectorsMap.addSector(e.data.sectorX, e.data.sectorY, terrainLOD0)
   }
 
   /**
    *
    * @param {Float32Array} data
+   * @param {number} step how many points should I omit? Useful for building meshes with lower LOD
    * @returns {Vector3[][]} points in 2d map: sectorSizeX * sectorSizeY
    */
-  parseMapData(data) {
+  parseMapData(data, step = 1) {
+    step = Math.max(1, step)
     const result = [[]]
 
     const maxX = this.sectorSizeX + 1
@@ -167,18 +195,18 @@ class TerrainController {
     let finished = false
 
     while (!finished) {
-      result[y].push(new Vector3(data[index], data[index + 2], data[index + 1]))
-      x++
+      result[y / step].push(new Vector3(x, data[index], y))
+      x += step
       if (x >= maxX) {
-        y++
+        y += step
         if (y >= maxY) {
           finished = true
           break
         }
-        result[y] = []
+        result[y / step] = []
         x = 0
       }
-      index = x * 3 + y * 3 * (this.sectorSizeY + 1)
+      index = x + y * (this.sectorSizeY + 1)
     }
 
     return result

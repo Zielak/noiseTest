@@ -4,11 +4,8 @@ import { Scene } from "@babylonjs/core/scene"
 import { Vector3, Color3 } from "@babylonjs/core/Maths/math"
 import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera"
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight"
-import { Mesh } from "@babylonjs/core/Meshes/mesh"
 
 import { GridMaterial } from "@babylonjs/materials/grid"
-
-import DynamicTerrain from "./dynamicTerrain"
 
 // Required side effects to populate the Create methods on the mesh class. Without this, the bundle would be smaller but the createXXX methods from mesh would not be accessible.
 import "@babylonjs/core/Meshes/meshBuilder"
@@ -34,7 +31,7 @@ light.specular = new Color3(0.1, 0.3, 0.7)
 const gridMaterial = new GridMaterial("grid", scene)
 gridMaterial.wireframe = true
 
-const terrainController = new TerrainController(scene, 100, 100, 2)
+const terrainController = new TerrainController(scene, 100, 100, 4)
 
 setInterval(() => {
   terrainController.updatePlayerPosition(camera.position.clone())
