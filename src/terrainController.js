@@ -8,19 +8,19 @@ class TerrainController {
    * @param {Scene} scene
    */
   constructor(
-    { sectorSizeX, sectorSizeY, levelesOfDetail, viewDistance = 2 },
+    { sectorSizeX, sectorSizeY, LODDistanceModifiers, viewDistance = 2 },
     scene
   ) {
-    this.sectorSizeX = sectorSizeX
-    this.sectorSizeY = sectorSizeY
-    this.halfSectorSizeX = sectorSizeX / 2
-    this.halfSectorSizeY = sectorSizeY / 2
     this.viewDistance = viewDistance
-    this.levelesOfDetail = levelesOfDetail
+    this.LODDistanceModifiers = LODDistanceModifiers
 
     this.scene = scene
 
-    this.sectorsMap = new SectorsMap()
+    this.sectorsMap = new SectorsMap(
+      sectorSizeX,
+      sectorSizeY,
+      LODDistanceModifiers.length
+    )
     /**
      * @type {Worker[]}
      */
@@ -39,9 +39,7 @@ class TerrainController {
     this.workers = [new Worker("./terrain.worker.js")]
 
     this.setupWorkers()
-    this.sectorsMap
-      .getEmptySpotsInRadius(0, 0, this.viewDistance)
-      .forEach(vec => this.requestNewSector(vec.x, vec.y))
+    this.updateTerrain()
   }
 
   setupWorkers() {
@@ -62,8 +60,8 @@ class TerrainController {
 
     this.availableWorker.postMessage({
       type: "generateTerrain",
-      sizeX: this.sectorSizeX,
-      sizeY: this.sectorSizeY,
+      sizeX: this.sectorsMap.sizeX,
+      sizeY: this.sectorsMap.sizeY,
       sectorX: parseInt(sectorX),
       sectorY: parseInt(sectorY),
       LOD
@@ -81,17 +79,28 @@ class TerrainController {
       // Remember new position
       this.lastPlayerPosition = position.clone()
 
-      // Load up new sectors
-      this.sectorsMap
-        .getEmptySpotsInRadius(
-          this.currentSectorX,
-          this.currentSectorY,
-          this.viewDistance
-        )
-        .forEach(vec => this.requestNewSector(vec.x, vec.y))
+      this.updateTerrain()
 
       // TODO: Decide to ditch out of view sectors
     }
+  }
+
+  updateTerrain() {
+    // Update existing sectors with new LODs if needed.
+    this.sectorsMap
+      .getSectorsToGenerate(this.lastPlayerPosition.clone())
+      .forEach((lodMap, LOD) =>
+        lodMap.forEach(vec => this.requestNewSector(vec.x, vec.y, LOD))
+      )
+
+    // Fetch new sectors, which we haven't seen before
+    // this.sectorsMap
+    //   .getEmptySpotsInRadius(
+    //     this.currentSectorX,
+    //     this.currentSectorY,
+    //     this.viewDistance
+    //   )
+    //   .forEach(vec => this.requestNewSector(vec.x, vec.y))
   }
 
   /**
@@ -101,10 +110,10 @@ class TerrainController {
    */
   didPlayerChangeSector(position) {
     const secX = Math.floor(
-      (position.x - this.halfSectorSizeX) / this.sectorSizeX
+      (position.x - this.sectorsMap.halfSizeX) / this.sectorsMap.sizeX
     )
     const secY = Math.floor(
-      (position.z - this.halfSectorSizeY) / this.sectorSizeY
+      (position.z - this.sectorsMap.halfSizeY) / this.sectorsMap.sizeY
     )
 
     if (secX !== this.currentSectorX || secY !== this.currentSectorY) {
@@ -113,67 +122,40 @@ class TerrainController {
   }
 
   handleWorkerMessage(e) {
-    const { uneveneness, sectorX, sectorY, pointValues } = e.data
+    const { uneveneness, sectorX, sectorY, pointValues, LOD } = e.data
+    // const LODSteps = [1, 2, 4, 10]
 
-    const terrainLOD0 = MeshBuilder.CreateRibbon(
-      `sector_${sectorX},${sectorY},LOD0`,
+    // The more ground is unevenen, the more detail needs to be seen
+    const lodBase =
+      (this.sectorsMap.halfSizeX + this.sectorsMap.halfSizeY) / 1.5
+    const exp = uneveneness + 1
+
+    const LODDistances = this.LODDistanceModifiers.map(
+      distance => lodBase * (distance * exp)
+    )
+
+    const mesh = MeshBuilder.CreateRibbon(
+      `sector_${sectorX},${sectorY},LOD${LOD}`,
       {
         sideOrientation: Mesh.BACKSIDE,
         pathArray: this.parseMapData(pointValues)
       },
       this.scene
     )
-    const terrainLOD1 = MeshBuilder.CreateRibbon(
-      `sector_${sectorX},${sectorY},LOD1`,
-      {
-        sideOrientation: Mesh.BACKSIDE,
-        pathArray: this.parseMapData(pointValues, 2)
-      },
-      this.scene
-    )
-    const terrainLOD2 = MeshBuilder.CreateRibbon(
-      `sector_${sectorX},${sectorY},LOD2`,
-      {
-        sideOrientation: Mesh.BACKSIDE,
-        pathArray: this.parseMapData(pointValues, 4)
-      },
-      this.scene
-    )
-    const terrainLOD3 = MeshBuilder.CreateRibbon(
-      `sector_${sectorX},${sectorY},LOD3`,
-      {
-        sideOrientation: Mesh.BACKSIDE,
-        pathArray: this.parseMapData(pointValues, 10)
-      },
-      this.scene
-    )
+    mesh.position.x = sectorX * this.sectorsMap.sizeX
+    mesh.position.z = sectorY * this.sectorsMap.sizeY
+    mesh.setMaterialByID("grid")
 
-    // The more ground is unevenen, the more detail needs to be seeeen
-    const lodBase = (this.halfSectorSizeX + this.halfSectorSizeY) / 1.5
-    const exp = uneveneness + 1
-
-    const LODs = [
-      lodBase * (2 * exp),
-      lodBase * (4 * exp),
-      lodBase * (8 * exp),
-      lodBase * (16 * (exp * exp))
-    ]
-
-    terrainLOD0.addLODLevel(LODs[0], terrainLOD1)
-    terrainLOD0.addLODLevel(LODs[1], terrainLOD2)
-    terrainLOD0.addLODLevel(LODs[2], terrainLOD3)
-    terrainLOD0.addLODLevel(LODs[3], null)
-
-    terrainLOD0.position.x = sectorX * this.sectorSizeX
-    terrainLOD0.position.z = sectorY * this.sectorSizeY
-    terrainLOD0.setMaterialByID("grid")
-    terrainLOD1.setMaterialByID("grid")
-    terrainLOD2.setMaterialByID("grid")
-    terrainLOD3.setMaterialByID("grid")
-
-    this.sectorsMap.addSector(
-      new TerrainSector(sectorX, sectorY, terrainLOD0, pointValues)
-    )
+    const sector = this.sectorsMap.getSector(sectorX, sectorY)
+    if (!sector) {
+      // Add new one
+      const newSector = new TerrainSector(sectorX, sectorY)
+      newSector.setMeshLODAtDistance(LOD, mesh, LODDistances[LOD])
+      this.sectorsMap.addSector(newSector)
+    } else {
+      // Update existing with new mesh data
+      sector.setMeshLODAtDistance(LOD, mesh, distance)
+    }
     console.log(
       ` => Got data [${sectorX},${sectorY}] lods:${LODs.map(num =>
         num.toFixed(2)
@@ -191,8 +173,8 @@ class TerrainController {
     step = Math.max(1, step)
     const result = [[]]
 
-    const maxX = this.sectorSizeX + 1
-    const maxY = this.sectorSizeY + 1
+    const maxX = this.sectorsMap.sizeX + 1
+    const maxY = this.sectorsMap.sizeY + 1
     let x = 0
     let y = 0
     let index = 0
@@ -211,7 +193,7 @@ class TerrainController {
         result[y / step] = []
         x = 0
       }
-      index = x + y * (this.sectorSizeY + 1)
+      index = x + y * (this.sectorsMap.sizeY + 1)
     }
 
     return result
@@ -219,8 +201,8 @@ class TerrainController {
 
   getSectorFromPosition(x, z) {
     return new Vector2(
-      Math.floor((x - this.halfSectorSizeX) / this.sectorSizeX),
-      Math.floor((z - this.halfSectorSizeY) / this.sectorSizeY)
+      Math.floor((x - this.sectorsMap.halfSizeX) / this.sectorsMap.sizeX),
+      Math.floor((z - this.sectorsMap.halfSizeY) / this.sectorsMap.sizeY)
     )
   }
 
@@ -238,15 +220,11 @@ class TerrainController {
 
   // TODO: Memoize
   get currentSectorX() {
-    return Math.floor(
-      (this.lastPlayerPosition.x - this.halfSectorSizeX) / this.sectorSizeX
-    )
+    return this.sectorsMap.posX2sectorX(this.lastPlayerPosition.x)
   }
   // TODO: Memoize
   get currentSectorY() {
-    return Math.floor(
-      (this.lastPlayerPosition.z - this.halfSectorSizeY) / this.sectorSizeY
-    )
+    return this.sectorsMap.posY2sectorY(this.lastPlayerPosition.z)
   }
 }
 
@@ -256,6 +234,6 @@ export { TerrainController }
  * @typedef {Object} TerrainControllerOptions
  * @property {number} sectorSizeX
  * @property {number} sectorSizeY
- * @property {number[]} levelesOfDetail
+ * @property {number[]} LODDistanceModifiers
  * @property {number=} viewDistance
  */

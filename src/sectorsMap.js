@@ -1,12 +1,30 @@
 import { TerrainSector } from "./sector"
-import { Vector2 } from "@babylonjs/core"
+import { Vector2, Vector3 } from "@babylonjs/core"
+
+const drawFilledCircle = (radius, points, addPoint) => {
+  for (let y = -radius; y <= radius; y++)
+    for (let x = -radius; x <= radius; x++)
+      if (x * x + y * y <= radius * radius) addPoint(points, x, y)
+  return points
+}
 
 class SectorsMap {
   /**
-   * @type {TerrainSector[]}
+   *
+   * @param {number} sizeX
+   * @param {number} sizeY
+   * @param {number} LODcount
    */
-  sectors
-  constructor() {
+  constructor(sizeX, sizeY, LODcount) {
+    this.sizeX = sizeX
+    this.sizeY = sizeY
+    this.halfSizeX = sizeX / 2
+    this.halfSizeY = sizeY / 2
+    this.LODcount = LODcount
+
+    /**
+     * @type {TerrainSector[]}
+     */
     this.sectors = []
   }
 
@@ -33,6 +51,13 @@ class SectorsMap {
     }
   }
 
+  sectorHasLOD(x, y, LOD) {
+    if (this.getSector(x, y)) {
+      return !!this.getSector(x, y).terrains[LOD]
+    }
+    return false
+  }
+
   /**
    *
    * @param {number} x
@@ -51,6 +76,61 @@ class SectorsMap {
       }
     }
   }
+
+  /**
+   *
+   * @param {Vector3} position
+   * @returns {Vector2[][]}
+   */
+  getSectorsToGenerate(position) {
+    const result = Array(this.LODcount).fill([])
+
+    const sx = this.posX2sectorX(position.x)
+    const sy = this.posY2sectorY(position.z)
+    const lods = {}
+
+    // Get sectors in pattern, map them by their LOD
+    // https://drive.google.com/file/d/1118l8elXPER_5bsa036GlOvowMLYWuua/view?usp=sharing
+
+    // 1. Draw a circle in 2D object?
+    const addPoint = (points, x, y) => {
+      if (!points[y]) points[y] = {}
+      if (!points[y][x]) points[y][x] = 4
+      points[y][x] -= 1
+    }
+    const populate = (newData, results) => {
+      let i, j, lod
+      for (let y in newData) {
+        if (newData.hasOwnProperty(y)) {
+          for (let x in newData) {
+            if (newData.hasOwnProperty(x)) {
+              i = sx + Math.round(y / 2)
+              j = sy + Math.round(x / 2)
+              lod = newData[i][j]
+              // Must not already be defined in here
+              // Must not already exist in sector.mesh.lod
+              if (!results[lod] && !this.sectorHasLOD(i, j, lod)) {
+                results[lod] = new Vector2(x + sx, y + sy)
+              }
+            }
+          }
+        }
+      }
+    }
+    // TODO: maybe use the efact that wee KNOW how many
+    //       lod levels we're gonna have `LODcount`
+    drawFilledCircle(1, lods, addPoint)
+    populate(lods, result)
+    drawFilledCircle(2, lods, addPoint)
+    populate(lods, result)
+    drawFilledCircle(3, lods, addPoint)
+    populate(lods, result)
+    drawFilledCircle(5, lods, addPoint)
+    populate(lods, result)
+
+    return result
+  }
+
   /**
    *
    * @param {number} x
@@ -70,6 +150,13 @@ class SectorsMap {
       }
     }
     return result
+  }
+
+  posX2sectorX(value) {
+    return Math.floor((value - this.halfSizeX) / this.sizeX)
+  }
+  posY2sectorY(value) {
+    return Math.floor((value - this.halfSizeY) / this.sizeY)
   }
 }
 

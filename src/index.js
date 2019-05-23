@@ -32,7 +32,12 @@ const gridMaterial = new GridMaterial("grid", scene)
 // gridMaterial.wireframe = true
 
 const terrainController = new TerrainController(
-  { sectorSizeX: 100, sectorSizeY: 100, levelesOfDetail: 6 },
+  {
+    sectorSizeX: 100,
+    sectorSizeY: 100,
+    viewDistance: 6,
+    LODDistanceModifiers: [2, 4, 8, 32]
+  },
   scene
 )
 

@@ -4,13 +4,18 @@
   "main": "src/index.html",
   "license": "MIT",
   "scripts": {
-    "start": "parcel src/index.html --port 8090 ",
+    "start": "webpack-dev-server --port 8090",
     "build": "webpack --mode development --devtool source-map"
   },
   "dependencies": {
     "@babylonjs/core": "^4.0.3",
     "@babylonjs/materials": "^4.0.3",
-    "simplex-noise": "^2.4.0"
+    "copy-webpack-plugin": "^5.0.3",
+    "html-loader": "^0.5.5",
+    "simplex-noise": "^2.4.0",
+    "webpack": "^4.32.2",
+    "webpack-cli": "^3.3.2",
+    "webpack-dev-server": "^3.4.1"
   },
   "devDependencies": {
     "@babel/core": "^7.4.4",
