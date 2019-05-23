@@ -31,7 +31,10 @@ light.specular = new Color3(0.1, 0.3, 0.7)
 const gridMaterial = new GridMaterial("grid", scene)
 // gridMaterial.wireframe = true
 
-const terrainController = new TerrainController(scene, 100, 100, 6)
+const terrainController = new TerrainController(
+  { sectorSizeX: 100, sectorSizeY: 100, levelesOfDetail: 6 },
+  scene
+)
 
 setInterval(() => {
   terrainController.updatePlayerPosition(camera.position.clone())

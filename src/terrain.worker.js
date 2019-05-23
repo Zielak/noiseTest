@@ -102,13 +102,15 @@ self.onmessage = e => {
       e.data.sizeX,
       e.data.sizeY,
       e.data.sectorX * e.data.sizeX,
-      e.data.sectorY * e.data.sizeY
+      e.data.sectorY * e.data.sizeY,
+      e.data.LOD
     )
     self.postMessage({
       pointValues: mapData.pointValues,
       sectorX: e.data.sectorX,
       sectorY: e.data.sectorY,
-      uneveneness: mapData.uneveneness
+      uneveneness: mapData.uneveneness,
+      LOD: e.data.LOD
     })
   }
 }

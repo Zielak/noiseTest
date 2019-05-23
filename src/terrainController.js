@@ -4,43 +4,29 @@ import { SectorsMap } from "./sectorsMap"
 
 class TerrainController {
   /**
-   * @type {number}
-   */
-  viewDistance
-
-  /**
-   * @type {number}
-   */
-  sectorSizeX
-  halfSectorSizeX
-  /**
-   * @type {number}
-   */
-  sectorSizeY
-  halfSectorSizeY
-
-  sectorsMap = new SectorsMap()
-
-  /**
-   * @type {Worker[]}
-   */
-  workers = []
-
-  lastPlayerPosition = Vector3.Zero()
-
-  /**
-   *
-   * @param {number} sectorSizeX
-   * @param {number} sectorSizeY
+   * @param {TerrainControllerOptions} options
    * @param {Scene} scene
    */
-  constructor(scene, sectorSizeX = 100, sectorSizeY = 100, viewDistance = 3) {
+  constructor(
+    { sectorSizeX, sectorSizeY, levelesOfDetail, viewDistance = 2 },
+    scene
+  ) {
     this.sectorSizeX = sectorSizeX
     this.sectorSizeY = sectorSizeY
     this.halfSectorSizeX = sectorSizeX / 2
     this.halfSectorSizeY = sectorSizeY / 2
     this.viewDistance = viewDistance
+    this.levelesOfDetail = levelesOfDetail
+
     this.scene = scene
+
+    this.sectorsMap = new SectorsMap()
+    /**
+     * @type {Worker[]}
+     */
+    this.workers = []
+
+    this.lastPlayerPosition = Vector3.Zero()
 
     const camElevation = 4.0
     scene.registerBeforeRender(() => {
@@ -69,16 +55,18 @@ class TerrainController {
    * maybe you privided invalid data...
    * @param {number} sectorX
    * @param {number} positionY
+   * @param {number} LOD level of detail for this sector
    */
-  requestNewSector(sectorX = 0, sectorY = 0) {
-    console.log(` <= requesting new sector [${sectorX}, ${sectorY}]`)
+  requestNewSector(sectorX, sectorY, LOD) {
+    console.log(` <= requesting new sector [${sectorX},${sectorY}_${LOD}]`)
 
     this.availableWorker.postMessage({
       type: "generateTerrain",
       sizeX: this.sectorSizeX,
       sizeY: this.sectorSizeY,
       sectorX: parseInt(sectorX),
-      sectorY: parseInt(sectorY)
+      sectorY: parseInt(sectorY),
+      LOD
     })
   }
 
@@ -263,3 +251,11 @@ class TerrainController {
 }
 
 export { TerrainController }
+
+/**
+ * @typedef {Object} TerrainControllerOptions
+ * @property {number} sectorSizeX
+ * @property {number} sectorSizeY
+ * @property {number[]} levelesOfDetail
+ * @property {number=} viewDistance
+ */
