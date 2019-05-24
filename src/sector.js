@@ -46,13 +46,14 @@ class TerrainSector {
     })
     // 2. Apply all known LODmeshes to the best mesh only
     let first = true
-    for (let { mesh, distance } of this.terrains) {
+    this.terrains.forEach(data => {
       if (first) {
         first = false
-        continue
+        return
       }
-      this.bestTerrainMesh.addLODLevel(distance, mesh)
-    }
+      if (!data) return
+      this.bestTerrainMesh.addLODLevel(data.distance, data.mesh)
+    })
   }
 
   getHeight(x, z) {

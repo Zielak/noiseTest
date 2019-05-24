@@ -154,12 +154,12 @@ class TerrainController {
       this.sectorsMap.addSector(newSector)
     } else {
       // Update existing with new mesh data
-      sector.setMeshLODAtDistance(LOD, mesh, distance)
+      sector.setMeshLODAtDistance(LOD, mesh, LODDistances[LOD])
     }
     console.log(
-      ` => Got data [${sectorX},${sectorY}] lods:${LODs.map(num =>
-        num.toFixed(2)
-      ).join(", ")}; uneveneness: ${uneveneness.toFixed(4)}`
+      ` => Got data [${sectorX},${sectorY}_${LOD}] uneveneness: ${uneveneness.toFixed(
+        4
+      )}`
     )
   }
 

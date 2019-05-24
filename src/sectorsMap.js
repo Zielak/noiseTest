@@ -83,11 +83,8 @@ class SectorsMap {
    * @returns {Vector2[][]}
    */
   getSectorsToGenerate(position) {
-    const result = Array(this.LODcount).fill([])
-
     const sx = this.posX2sectorX(position.x)
     const sy = this.posY2sectorY(position.z)
-    const lods = {}
 
     // Get sectors in pattern, map them by their LOD
     // https://drive.google.com/file/d/1118l8elXPER_5bsa036GlOvowMLYWuua/view?usp=sharing
@@ -98,37 +95,71 @@ class SectorsMap {
       if (!points[y][x]) points[y][x] = 4
       points[y][x] -= 1
     }
-    const populate = (newData, results) => {
+    const populate = newData => {
+      const result = Array(this.LODcount)
+        .fill()
+        .map(_ => [])
       let i, j, lod
+
+      const targetMap = {}
+
+      const setPoint = (x, y, v) => {
+        if (typeof v !== "number") return
+        if (!targetMap[y]) targetMap[y] = {}
+        if (v < targetMap[y][x]) {
+          debugger
+        }
+        if (typeof targetMap[y][x] !== "number" || v < targetMap[y][x]) {
+          targetMap[y][x] = v
+        }
+      }
+
       for (let y in newData) {
         if (newData.hasOwnProperty(y)) {
-          for (let x in newData) {
-            if (newData.hasOwnProperty(x)) {
+          for (let x in newData[y]) {
+            if (newData[y].hasOwnProperty(x)) {
               i = sx + Math.round(y / 2)
               j = sy + Math.round(x / 2)
+              if (!newData[i]) continue
               lod = newData[i][j]
+              setPoint(i, j, lod)
+            }
+          }
+        }
+      }
+
+      for (let y in targetMap) {
+        if (targetMap.hasOwnProperty(y)) {
+          for (let x in targetMap[y]) {
+            if (targetMap[y].hasOwnProperty(x)) {
+              i = sx + parseInt(x)
+              j = sy + parseInt(y)
+              lod = targetMap[y][x]
               // Must not already be defined in here
               // Must not already exist in sector.mesh.lod
-              if (!results[lod] && !this.sectorHasLOD(i, j, lod)) {
-                results[lod] = new Vector2(x + sx, y + sy)
+              if (
+                typeof lod === "number" &&
+                !result[lod].find(e => e.x !== i && e.y !== j) &&
+                !this.sectorHasLOD(i, j, lod)
+              ) {
+                result[lod].push(new Vector2(i, j))
               }
             }
           }
         }
       }
+      return result
     }
-    // TODO: maybe use the efact that wee KNOW how many
-    //       lod levels we're gonna have `LODcount`
-    drawFilledCircle(1, lods, addPoint)
-    populate(lods, result)
-    drawFilledCircle(2, lods, addPoint)
-    populate(lods, result)
-    drawFilledCircle(3, lods, addPoint)
-    populate(lods, result)
-    drawFilledCircle(5, lods, addPoint)
-    populate(lods, result)
 
-    return result
+    const lods = {}
+    // TODO: maybe use the fact that we KNOW how many
+    //       lod levels we're gonna have `LODcount`
+    drawFilledCircle(5, lods, addPoint)
+    drawFilledCircle(3, lods, addPoint)
+    drawFilledCircle(2, lods, addPoint)
+    drawFilledCircle(1, lods, addPoint)
+
+    return populate(lods)
   }
 
   /**
