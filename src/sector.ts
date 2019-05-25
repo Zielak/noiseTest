@@ -1,18 +1,14 @@
 import { Mesh } from "@babylonjs/core"
 
 class TerrainSector {
-  /**
-   * @param {number} x sectorX position
-   * @param {number} y sectorY position
-   * @param {Mesh} terrain
-   */
-  constructor(x, y) {
+  x: number
+  y: number
+  terrains: TerrainData[]
+
+  constructor(x: number, y: number) {
     this.x = x
     this.y = y
 
-    /**
-     * @type {TerrainData[]}
-     */
     this.terrains = []
   }
 
@@ -39,9 +35,7 @@ class TerrainSector {
     this.terrains.forEach(data => {
       // 1. remove LOD meshes from every other mesh
       if (data.mesh.hasLODLevels) {
-        this.terrains.forEach(({ meshLOD }) =>
-          data.mesh.removeLODLevel(meshLOD)
-        )
+        this.terrains.forEach(({ mesh }) => data.mesh.removeLODLevel(mesh))
       }
     })
     // 2. Apply all known LODmeshes to the best mesh only
@@ -57,7 +51,7 @@ class TerrainSector {
   }
 
   getHeight(x, z) {
-    const mapData = this.pointValues
+    // const mapData = this.pointValues
 
     return 0
   }
@@ -76,8 +70,7 @@ class TerrainSector {
 
 export { TerrainSector }
 
-/**
- * @typedef {Object} TerrainData
- * @property {Mesh} mesh
- * @property {number} LODdistance
- */
+export type TerrainData = {
+  mesh: Mesh
+  distance: number
+}

@@ -1,14 +1,28 @@
 import { Mesh, Vector3, Vector2, Scene, MeshBuilder } from "@babylonjs/core"
 import { TerrainSector } from "./sector"
 import { SectorsMap } from "./sectorsMap"
+import { getStepping } from "./utils/mesh"
 
 class TerrainController {
+  viewDistance: number
+  LODDistanceModifiers: number[]
+  scene: Scene
+  sectorsMap: SectorsMap
+  workers: Worker[]
+  lastPlayerPosition: Vector3
+
   /**
    * @param {TerrainControllerOptions} options
    * @param {Scene} scene
    */
   constructor(
-    { sectorSizeX, sectorSizeY, LODDistanceModifiers, viewDistance = 2 },
+    {
+      sectorSizeX,
+      sectorSizeY,
+      LODDistanceModifiers,
+      viewDistance = 2,
+      initialPlayerPos
+    },
     scene
   ) {
     this.viewDistance = viewDistance
@@ -21,12 +35,11 @@ class TerrainController {
       sectorSizeY,
       LODDistanceModifiers.length
     )
-    /**
-     * @type {Worker[]}
-     */
     this.workers = []
 
-    this.lastPlayerPosition = Vector3.Zero()
+    this.lastPlayerPosition = initialPlayerPos
+      ? initialPlayerPos.clone()
+      : Vector3.Zero()
 
     const camElevation = 4.0
     scene.registerBeforeRender(() => {
@@ -111,12 +124,8 @@ class TerrainController {
    * @returns {Vector2} or undefined if player is still in the same spot
    */
   didPlayerChangeSector(position) {
-    const secX = Math.floor(
-      (position.x - this.sectorsMap.halfSizeX) / this.sectorsMap.sizeX
-    )
-    const secY = Math.floor(
-      (position.z - this.sectorsMap.halfSizeY) / this.sectorsMap.sizeY
-    )
+    const secX = this.sectorsMap.posX2sectorX(position.x)
+    const secY = this.sectorsMap.posY2sectorY(position.z)
 
     if (secX !== this.currentSectorX || secY !== this.currentSectorY) {
       return new Vector2(secX - this.currentSectorX, secY - this.currentSectorY)
@@ -140,7 +149,7 @@ class TerrainController {
       `sector_${sectorX},${sectorY},LOD${LOD}`,
       {
         sideOrientation: Mesh.BACKSIDE,
-        pathArray: this.parseMapData(pointValues)
+        pathArray: this.parseMapData(pointValues, getStepping(LOD))
       },
       this.scene
     )
@@ -159,9 +168,9 @@ class TerrainController {
       sector.setMeshLODAtDistance(LOD, mesh, LODDistances[LOD])
     }
     console.log(
-      ` => Got data [${sectorX},${sectorY}_${LOD}] uneveneness: ${uneveneness.toFixed(
-        4
-      )}`
+      ` => Got data [${sectorX},${sectorY}_${LOD}], ${
+        pointValues.length
+      } points, uneveneness: ${uneveneness.toFixed(4)}`
     )
   }
 
@@ -240,10 +249,10 @@ class TerrainController {
 
 export { TerrainController }
 
-/**
- * @typedef {Object} TerrainControllerOptions
- * @property {number} sectorSizeX
- * @property {number} sectorSizeY
- * @property {number[]} LODDistanceModifiers
- * @property {number=} viewDistance
- */
+export type TerrainControllerOptions = {
+  sectorSizeX: number
+  sectorSizeY: number
+  LODDistanceModifiers: number[]
+  initialPlayerPos?: Vector3
+  viewDistance?: number
+}

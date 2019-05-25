@@ -9,20 +9,25 @@ import { GridMaterial } from "@babylonjs/materials/grid"
 
 // Required side effects to populate the Create methods on the mesh class. Without this, the bundle would be smaller but the createXXX methods from mesh would not be accessible.
 import "@babylonjs/core/Meshes/meshBuilder"
-import { TerrainController } from "./terrainController"
-import { gui } from "./gui"
-import { applyKeyboardControls } from "./keyboardControls"
 
-const canvas = document.getElementById("renderCanvas")
+import ReactDOM from "react-dom"
+import React from "react"
+import { Gui } from "./viewComponents/gui"
+
+import { TerrainController } from "./terrainController"
+import { applyKeyboardControls } from "./keyboardControls"
+import { MinimapSectorProps } from "./viewComponents/minimap"
+
+const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement
 const engine = new Engine(canvas)
 var scene = new Scene(engine)
 
-const camera = new FreeCamera("camera1", new Vector3(0, 20, 0), scene)
+const camera = new FreeCamera("camera1", new Vector3(75, 20, 75), scene)
 camera.speed = 3.5
 camera.keysDown
 
 // This targets the camera to scene origin
-camera.setTarget(new Vector3(-10, 16, -10))
+camera.setTarget(new Vector3(25, 16, 25))
 camera.attachControl(canvas, true)
 
 // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
@@ -51,10 +56,11 @@ gridMaterial3.lineColor = new Color3(1, 0, 1)
 
 const terrainController = new TerrainController(
   {
-    sectorSizeX: 100,
-    sectorSizeY: 100,
+    sectorSizeX: 200,
+    sectorSizeY: 200,
     viewDistance: 6,
-    LODDistanceModifiers: [2, 4, 8, 32]
+    LODDistanceModifiers: [2, 4, 8, 32],
+    initialPlayerPos: camera.position
   },
   scene
 )
@@ -63,12 +69,38 @@ setInterval(() => {
   terrainController.updatePlayerPosition(camera.position.clone())
 }, 2000)
 
+export const EVENTS = {
+  updateCurrentSector: "updateCurrentSector"
+}
+
+ReactDOM.render(<Gui />, document.getElementById("gui"))
+
 setInterval(() => {
   const { x, y } = terrainController.getSectorFromVector(camera.position)
 
-  gui.updateCurrentSector(`Sector[${x}, ${y}]`)
+  const allSectors = []
+  const sectors = terrainController.sectorsMap.sectors
+  for (let secColumn in sectors) {
+    for (let secRow in sectors[secColumn]) {
+      allSectors.push(sectors[secColumn][secRow])
+    }
+  }
 
-  gui.updateMinimap(terrainController.sectorsMap, x, y)
+  const data: EUpdateCurrentSector = {
+    currentX: x,
+    currentY: y,
+    minimap: allSectors.map(el => ({
+      x: el.x,
+      y: el.y,
+      current: el.x === x && el.y === y,
+      bestLod: el.currentBestLOD,
+      terrains: el.terrains.length
+    }))
+  }
+
+  document.dispatchEvent(
+    new CustomEvent(EVENTS.updateCurrentSector, { detail: data })
+  )
 }, 500)
 
 // Render every frame
@@ -84,3 +116,9 @@ applyKeyboardControls(scene, camera)
 //     terrainController.getHeightFromMap(camera.position.x, camera.position.z) +
 //     camElevation
 // })
+
+export interface EUpdateCurrentSector {
+  currentX: number
+  currentY: number
+  minimap: MinimapSectorProps[]
+}

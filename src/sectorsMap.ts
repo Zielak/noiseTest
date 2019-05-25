@@ -9,30 +9,25 @@ const drawFilledCircle = (radius, points, addPoint) => {
 }
 
 class SectorsMap {
-  /**
-   *
-   * @param {number} sizeX
-   * @param {number} sizeY
-   * @param {number} LODcount
-   */
-  constructor(sizeX, sizeY, LODcount) {
+  sizeX: number
+  sizeY: number
+  halfSizeX: number
+  halfSizeY: number
+  LODcount: number
+
+  sectors: Array<Array<TerrainSector>>
+
+  constructor(sizeX: number, sizeY: number, LODcount: number) {
     this.sizeX = sizeX
     this.sizeY = sizeY
     this.halfSizeX = sizeX / 2
     this.halfSizeY = sizeY / 2
     this.LODcount = LODcount
 
-    /**
-     * @type {TerrainSector[]}
-     */
     this.sectors = []
   }
 
-  /**
-   *
-   * @param {TerrainSector} sector
-   */
-  addSector(sector) {
+  addSector(sector: TerrainSector) {
     if (!this.sectors[sector.y]) {
       this.sectors[sector.y] = []
     }
@@ -97,8 +92,8 @@ class SectorsMap {
       points[y][x] -= 1
     }
     const populate = newData => {
-      const result = Array(this.LODcount)
-        .fill()
+      const result: Array<Array<Vector2>> = Array(this.LODcount)
+        .fill(undefined)
         .map(_ => [])
       let i, j, lod
 
@@ -119,8 +114,8 @@ class SectorsMap {
         if (newData.hasOwnProperty(y)) {
           for (let x in newData[y]) {
             if (newData[y].hasOwnProperty(x)) {
-              i = sx + Math.round(y / 2)
-              j = sy + Math.round(x / 2)
+              i = Math.round(parseInt(y) / 2)
+              j = Math.round(parseInt(x) / 2)
               if (!newData[i]) continue
               lod = newData[i][j]
               setPoint(i, j, lod)
@@ -138,13 +133,24 @@ class SectorsMap {
               lod = targetMap[y][x]
               // Must not already be defined in here
               // Must not already exist in sector.mesh.lod
-              if (
-                typeof lod === "number" &&
-                !result[lod].find(e => e.x !== i && e.y !== j) &&
-                !this.sectorHasLOD(i, j, lod)
-              ) {
-                result[lod].push(new Vector2(i, j))
+              if (typeof lod !== "number") {
+                console.warn("LOD not a number")
+                continue
               }
+              if (
+                result[lod].find(
+                  e => e.x === parseInt(x) && e.y === parseInt(y)
+                )
+              ) {
+                console.warn("same sector already exists in result[lod]")
+                continue
+              }
+              if (this.sectorHasLOD(i, j, lod)) {
+                console.warn("sector already has the same LOD")
+                continue
+              }
+
+              result[lod].push(new Vector2(i, j))
             }
           }
         }
@@ -155,7 +161,7 @@ class SectorsMap {
     const lods = {}
     // TODO: maybe use the fact that we KNOW how many
     //       lod levels we're gonna have `LODcount`
-    drawFilledCircle(5, lods, addPoint)
+    drawFilledCircle(8, lods, addPoint)
     drawFilledCircle(3, lods, addPoint)
     drawFilledCircle(2, lods, addPoint)
     drawFilledCircle(1, lods, addPoint)
@@ -185,10 +191,10 @@ class SectorsMap {
   }
 
   posX2sectorX(value) {
-    return Math.floor((value - this.halfSizeX) / this.sizeX)
+    return Math.round((value - this.halfSizeX) / this.sizeX)
   }
   posY2sectorY(value) {
-    return Math.floor((value - this.halfSizeY) / this.sizeY)
+    return Math.round((value - this.halfSizeY) / this.sizeY)
   }
 }
 

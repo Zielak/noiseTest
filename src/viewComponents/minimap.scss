@@ -1,0 +1,57 @@
+.minimap {
+  font-family: "Courier New", Courier, monospace;
+  position: absolute;
+  height: 100%;
+  width: 100%;
+
+  &_hideButton {
+    pointer-events: initial;
+  }
+
+  &--hidden {
+    .minimap_wrapper {
+      top: -100% !important;
+    }
+  }
+
+  &_wrapper {
+    position: relative;
+    margin-top: 25%;
+    margin-left: 50%;
+
+    transition: top 0.2s ease-out, left 0.2s ease-out;
+  }
+
+  .sector {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    margin: 0 -2px -2px 0;
+    border: 2px dotted #aaa;
+
+    text-align: center;
+    &_position {
+    }
+    &_lod {
+      font-weight: bold;
+      &--best0 {
+        color: #0ff;
+      }
+      &--best1 {
+        color: #0f0;
+      }
+      &--best2 {
+        color: #ff0;
+      }
+      &--best3 {
+        color: #f0f;
+      }
+    }
+
+    &--current {
+      border: 2px solid red;
+      background: #ff66ff33;
+      color: pink;
+    }
+  }
+}

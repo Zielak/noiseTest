@@ -1,7 +1,12 @@
-import SimplexNoise from "simplex-noise"
+import SimplexNoise, { RandomNumberGenerator } from "simplex-noise"
+import { getStepping } from "./utils/mesh"
 
-const seed1 = new SimplexNoise(Math.random())
-const seed2 = new SimplexNoise(Math.random())
+const random: RandomNumberGenerator = () => {
+  return Math.random()
+}
+
+const seed1 = new SimplexNoise(random)
+const seed2 = new SimplexNoise(random)
 
 function ridgenoise(nx, ny) {
   return 2 * (0.5 - Math.abs(0.5 - seed1.noise2D(nx, ny)))
@@ -70,22 +75,6 @@ const calculateUnevenness = (points, step = 2) => {
   return Math.abs(max - min) / 100
 }
 
-// FIXME: is that enough? How about different size?
-const getStepping = (LOD, size) => {
-  switch (LOD) {
-    case 0:
-      return 1
-    case 1:
-      return 2
-    case 2:
-      return 4
-    case 3:
-      return 10
-    default:
-      10
-  }
-}
-
 const generateTerrain = (
   sizeX = 100,
   sizeY = 100,
@@ -100,7 +89,7 @@ const generateTerrain = (
   sizeX++
   sizeY++
 
-  const pointValues = new Float32Array(sizeX * sizeY)
+  const pointValues = new Float32Array((sizeX / stepX) * (sizeY / stepY))
   for (let Y = 0; Y <= sizeY; Y += stepY) {
     for (let X = 0; X <= sizeX; X += stepX) {
       const x = X * stepX + baseX
@@ -120,7 +109,7 @@ const generateTerrain = (
   }
 }
 
-self.onmessage = e => {
+onmessage = e => {
   if (e.data.type === "generateTerrain") {
     const mapData = generateTerrain(
       e.data.sizeX,
@@ -129,7 +118,7 @@ self.onmessage = e => {
       e.data.sectorY * e.data.sizeY,
       e.data.LOD
     )
-    self.postMessage({
+    postMessage({
       pointValues: mapData.pointValues,
       sectorX: e.data.sectorX,
       sectorY: e.data.sectorY,

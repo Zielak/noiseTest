@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "esModuleInterop": true,
+    "lib": ["dom", "webworker"],
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "jsx": "react",
+    "target": "es6"
+  }
+}

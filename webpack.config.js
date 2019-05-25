@@ -10,8 +10,8 @@ const getMode = env => {
 }
 const getEntries = env => {
   const entry = {
-    main: "./src/index.js",
-    "terrain.worker": "./src/terrain.worker.js"
+    main: "./src/index.tsx",
+    "terrain.worker": "./src/terrain.worker.ts"
   }
   return entry
 }
@@ -56,20 +56,21 @@ module.exports = env => {
     mode: getMode(env),
     module: {
       rules: [
-        // {
-        //   test: /\.js$/,
-        //   exclude: /node_modules\/(?!@perform)/,
-        //   use: ["babel-loader"]
-        // },
+        {
+          test: /\.tsx?$/,
+          use: "ts-loader",
+          exclude: /node_modules/
+        },
         {
           test: /\.html$/,
           use: [
             {
               loader: "html-loader",
               options: {
-                minimize: true,
-                removeComments: true,
-                collapseWhitespace: true
+                attrs: ["link:href"]
+                // minimize: true,
+                // removeComments: true,
+                // collapseWhitespace: true
               }
             }
           ]
@@ -90,7 +91,10 @@ module.exports = env => {
         }
       ]
     },
-    plugins: getPlugins(env)
+    plugins: getPlugins(env),
+    resolve: {
+      extensions: [".ts", ".tsx", ".js"]
+    }
   }
 
   return config
