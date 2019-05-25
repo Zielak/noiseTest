@@ -39,27 +39,28 @@ light.specular = new Color3(0.1, 0.3, 0.7)
 const gridMaterial = new GridMaterial("grid0", scene)
 // Blue
 gridMaterial.lineColor = new Color3(0, 1, 1)
+// gridMaterial.wireframe = true
 
 const gridMaterial1 = new GridMaterial("grid1", scene)
 // Green
 gridMaterial1.lineColor = new Color3(0, 1, 0)
+// gridMaterial1.wireframe = true
 
 const gridMaterial2 = new GridMaterial("grid2", scene)
 // Yellow
 gridMaterial2.lineColor = new Color3(1, 1, 0)
+// gridMaterial2.wireframe = true
 
 const gridMaterial3 = new GridMaterial("grid3", scene)
 // Pink
 gridMaterial3.lineColor = new Color3(1, 0, 1)
-
-// gridMaterial.wireframe = true
+// gridMaterial3.wireframe = true
 
 const terrainController = new TerrainController(
   {
     sectorSizeX: 200,
     sectorSizeY: 200,
-    viewDistance: 6,
-    LODDistanceModifiers: [2, 4, 8, 32],
+    LODDistanceModifiers: [4, 6, 10, 32],
     initialPlayerPos: camera.position
   },
   scene
@@ -67,7 +68,7 @@ const terrainController = new TerrainController(
 
 setInterval(() => {
   terrainController.updatePlayerPosition(camera.position.clone())
-}, 2000)
+}, 1000)
 
 export const EVENTS = {
   updateCurrentSector: "updateCurrentSector"

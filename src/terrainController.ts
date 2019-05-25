@@ -2,30 +2,23 @@ import { Mesh, Vector3, Vector2, Scene, MeshBuilder } from "@babylonjs/core"
 import { TerrainSector } from "./sector"
 import { SectorsMap } from "./sectorsMap"
 import { getStepping } from "./utils/mesh"
+import { LoadBalancer } from "./loadBalancer"
 
 class TerrainController {
-  viewDistance: number
+  lastPlayerPosition: Vector3
   LODDistanceModifiers: number[]
   scene: Scene
   sectorsMap: SectorsMap
-  workers: Worker[]
-  lastPlayerPosition: Vector3
+  terrainWorkers: LoadBalancer
 
   /**
    * @param {TerrainControllerOptions} options
    * @param {Scene} scene
    */
   constructor(
-    {
-      sectorSizeX,
-      sectorSizeY,
-      LODDistanceModifiers,
-      viewDistance = 2,
-      initialPlayerPos
-    },
+    { sectorSizeX, sectorSizeY, LODDistanceModifiers, initialPlayerPos },
     scene
   ) {
-    this.viewDistance = viewDistance
     this.LODDistanceModifiers = LODDistanceModifiers
 
     this.scene = scene
@@ -35,7 +28,22 @@ class TerrainController {
       sectorSizeY,
       LODDistanceModifiers.length
     )
-    this.workers = []
+    this.terrainWorkers = new LoadBalancer(
+      [
+        new Worker("./terrain.worker.js"),
+        new Worker("./terrain.worker.js"),
+        new Worker("./terrain.worker.js"),
+        new Worker("./terrain.worker.js"),
+        new Worker("./terrain.worker.js"),
+        new Worker("./terrain.worker.js")
+      ],
+      e => this.handleWorkerMessage(e)
+    )
+    this.terrainWorkers.postMessageAll({
+      type: "init",
+      seed1: "" + Math.random(),
+      seed2: "" + Math.random()
+    })
 
     this.lastPlayerPosition = initialPlayerPos
       ? initialPlayerPos.clone()
@@ -48,17 +56,7 @@ class TerrainController {
       //   camElevation
     })
 
-    // TODO: Let multiple workers work in paralel lol
-    this.workers = [new Worker("./terrain.worker.js")]
-
-    this.setupWorkers()
     this.updateTerrain()
-  }
-
-  setupWorkers() {
-    this.workers.forEach(
-      worker => (worker.onmessage = e => this.handleWorkerMessage(e))
-    )
   }
 
   /**
@@ -71,7 +69,7 @@ class TerrainController {
   requestNewSector(sectorX, sectorY, LOD) {
     console.log(` <= requesting new sector [${sectorX},${sectorY}_${LOD}]`)
 
-    this.availableWorker.postMessage({
+    this.terrainWorkers.postMessage({
       type: "generateTerrain",
       sizeX: this.sectorsMap.sizeX,
       sizeY: this.sectorsMap.sizeY,
@@ -101,21 +99,15 @@ class TerrainController {
   updateTerrain() {
     // Update existing sectors with new LODs if needed.
     this.sectorsMap
-      .getSectorsToGenerate(this.lastPlayerPosition.clone())
+      .getSectorsToGenerate(
+        this.lastPlayerPosition.clone(),
+        this.LODDistanceModifiers
+      )
       .forEach((lodMap, LOD) =>
         lodMap.forEach(vec => {
           this.requestNewSector(vec.x, vec.y, LOD)
         })
       )
-
-    // Fetch new sectors, which we haven't seen before
-    // this.sectorsMap
-    //   .getEmptySpotsInRadius(
-    //     this.currentSectorX,
-    //     this.currentSectorY,
-    //     this.viewDistance
-    //   )
-    //   .forEach(vec => this.requestNewSector(vec.x, vec.y))
   }
 
   /**
@@ -132,9 +124,8 @@ class TerrainController {
     }
   }
 
-  handleWorkerMessage(e) {
+  handleWorkerMessage(e: MessageEvent) {
     const { uneveneness, sectorX, sectorY, pointValues, LOD } = e.data
-    // const LODSteps = [1, 2, 4, 10]
 
     // The more ground is unevenen, the more detail needs to be seen
     const lodBase =
@@ -149,7 +140,7 @@ class TerrainController {
       `sector_${sectorX},${sectorY},LOD${LOD}`,
       {
         sideOrientation: Mesh.BACKSIDE,
-        pathArray: this.parseMapData(pointValues, getStepping(LOD))
+        pathArray: this.parseMapData(pointValues, LOD)
       },
       this.scene
     )
@@ -175,36 +166,25 @@ class TerrainController {
   }
 
   /**
-   *
-   * @param {Float32Array} data
-   * @param {number} step how many points should I omit? Useful for building meshes with lower LOD
    * @returns {Vector3[][]} points in 2d map: sectorSizeX * sectorSizeY
    */
-  parseMapData(data, step = 1) {
-    step = Math.max(1, step)
-    const result = [[]]
+  parseMapData(data: Float32Array, LOD: number) {
+    const result: Array<Array<Vector3>> = [[]]
 
-    const maxX = this.sectorsMap.sizeX + 1
-    const maxY = this.sectorsMap.sizeY + 1
-    let x = 0
-    let y = 0
-    let index = 0
+    const maxX = this.sectorsMap.sizeX / getStepping(LOD) + 1
+    const maxY = this.sectorsMap.sizeY / getStepping(LOD) + 1
 
-    let finished = false
-
-    while (!finished) {
-      result[y / step].push(new Vector3(x, data[index], y))
-      x += step
-      if (x >= maxX) {
-        y += step
-        if (y >= maxY) {
-          finished = true
-          break
-        }
-        result[y / step] = []
-        x = 0
+    for (let y = 0; y < maxY; y++) {
+      result[y] = []
+      for (let x = 0; x < maxX; x++) {
+        result[y].push(
+          new Vector3(
+            x * getStepping(LOD),
+            data[x + y * maxY],
+            y * getStepping(LOD)
+          )
+        )
       }
-      index = x + y * (this.sectorsMap.sizeY + 1)
     }
 
     return result
@@ -216,10 +196,6 @@ class TerrainController {
     return this.sectorsMap
       .getSector(sectorPlz.x, sectorPlz.y)
       .getHeight(posX, posZ)
-  }
-
-  get availableWorker() {
-    return this.workers[0]
   }
 
   // TODO: Memoize

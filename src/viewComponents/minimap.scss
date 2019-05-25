@@ -10,7 +10,7 @@
 
   &--hidden {
     .minimap_wrapper {
-      top: -100% !important;
+      display: none;
     }
   }
 
@@ -24,13 +24,15 @@
 
   .sector {
     position: absolute;
-    width: 50px;
-    height: 50px;
+    width: 30px;
+    height: 30px;
     margin: 0 -2px -2px 0;
     border: 2px dotted #aaa;
 
+    font-size: 12px;
     text-align: center;
     &_position {
+      letter-spacing: -1.7px;
     }
     &_lod {
       font-weight: bold;

@@ -73,19 +73,13 @@ class SectorsMap {
     return result
   }
 
-  /**
-   *
-   * @param {Vector3} position
-   * @returns {Vector2[][]}
-   */
-  getSectorsToGenerate(position) {
+  getSectorsToGenerate(position: Vector3, lodModifiers: number[]) {
     const sx = this.posX2sectorX(position.x)
     const sy = this.posY2sectorY(position.z)
 
     // Get sectors in pattern, map them by their LOD
     // https://drive.google.com/file/d/1118l8elXPER_5bsa036GlOvowMLYWuua/view?usp=sharing
 
-    // 1. Draw a circle in 2D object?
     const addPoint = (points, x, y) => {
       if (!points[y]) points[y] = {}
       if (!points[y][x]) points[y][x] = 4
@@ -110,6 +104,7 @@ class SectorsMap {
         }
       }
 
+      // "Scale down" resulted XY map to 2 times smaller circle
       for (let y in newData) {
         if (newData.hasOwnProperty(y)) {
           for (let x in newData[y]) {
@@ -123,6 +118,16 @@ class SectorsMap {
           }
         }
       }
+
+      /**
+       * Parse the 2D map into an array of sectors
+       * in arrays of LOD level
+       * [
+       *    LOD0: [ sector, sector, ... ]
+       *    LOD1: [ sector, sector, ... ]
+       *    ...
+       * ]
+       */
 
       for (let y in targetMap) {
         if (targetMap.hasOwnProperty(y)) {
@@ -159,35 +164,13 @@ class SectorsMap {
     }
 
     const lods = {}
-    // TODO: maybe use the fact that we KNOW how many
-    //       lod levels we're gonna have `LODcount`
-    drawFilledCircle(8, lods, addPoint)
-    drawFilledCircle(3, lods, addPoint)
-    drawFilledCircle(2, lods, addPoint)
-    drawFilledCircle(1, lods, addPoint)
+
+    // Draw a circle in 2D object, larger for each higher LOD
+    lodModifiers.forEach(mod => {
+      drawFilledCircle(Math.floor(mod / 2), lods, addPoint)
+    })
 
     return populate(lods)
-  }
-
-  /**
-   *
-   * @param {number} x
-   * @param {number} y
-   * @param {number} r
-   * @returns {Vector2[]}
-   */
-  getEmptySpotsInRadius(x, y, r) {
-    // FIXME: sort sectors by distance. Closest are more important
-    const result = []
-    for (let i = y - r; i <= y + r; i++) {
-      for (let j = x - r; j <= x + r; j++) {
-        const sec = this.getSector(j, i)
-        if (!sec) {
-          result.push(new Vector2(j, i))
-        }
-      }
-    }
-    return result
   }
 
   posX2sectorX(value) {

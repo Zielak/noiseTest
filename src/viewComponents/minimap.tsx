@@ -6,7 +6,7 @@ import React, {
   useEffect
 } from "react"
 
-const sectorTileSize = 52
+const sectorTileSize = 32
 
 export type MinimapProps = {
   sectors: MinimapSectorProps[]

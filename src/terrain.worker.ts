@@ -1,12 +1,8 @@
 import SimplexNoise, { RandomNumberGenerator } from "simplex-noise"
 import { getStepping } from "./utils/mesh"
 
-const random: RandomNumberGenerator = () => {
-  return Math.random()
-}
-
-const seed1 = new SimplexNoise(random)
-const seed2 = new SimplexNoise(random)
+let seed1
+let seed2
 
 function ridgenoise(nx, ny) {
   return 2 * (0.5 - Math.abs(0.5 - seed1.noise2D(nx, ny)))
@@ -14,7 +10,7 @@ function ridgenoise(nx, ny) {
 
 const layers = {
   base: (x, y) =>
-    seed1.noise2D(x / 10000, y / 10000) * seed2.noise2D(x / 2000, y / 2000) * 5,
+    seed1.noise2D(x / 8000, y / 8000) * seed2.noise2D(x / 1400, y / 1400) * 5,
   baseRidged: (x, y) => {
     const aplitude = seed1.noise2D(y / 3000, x / 3000) / 2 + 0.5
     const scale = 2000
@@ -62,12 +58,12 @@ const layers = {
  * @param {Float32Array} points
  */
 const calculateUnevenness = (points, step = 2) => {
-  step = Math.round(step)
+  step = Math.max(1, Math.round(step))
   let min = points[0]
   let max = points[0]
   let curr = 0
   const loopLimit = points.length - step
-  for (let i = 0; i < loopLimit; i += step) {
+  for (let i = step; i < loopLimit; i += step) {
     curr = points[i]
     if (curr < min) min = curr
     if (curr > max) max = curr
@@ -86,30 +82,35 @@ const generateTerrain = (
   const stepY = getStepping(LOD, sizeY)
 
   // Accomodate for the gaps between sectors
-  sizeX++
-  sizeY++
+  sizeX += stepX
+  sizeY += stepY
 
   const pointValues = new Float32Array((sizeX / stepX) * (sizeY / stepY))
-  for (let Y = 0; Y <= sizeY; Y += stepY) {
-    for (let X = 0; X <= sizeX; X += stepX) {
-      const x = X * stepX + baseX
-      const y = Y * stepY + baseY
+  for (let Y = 0; Y < sizeY; Y += stepY) {
+    for (let X = 0; X < sizeX; X += stepX) {
       const z =
         Object.values(layers)
-          .map(func => func(x, y))
+          .map(func => func(X + baseX, Y + baseY))
           .reduce((prev, curr) => prev + curr, 0) * 15
 
-      pointValues[Y * sizeX + X] = z
+      pointValues[X / stepX + (Y / stepY) * Math.ceil(sizeY / stepY)] = z
     }
   }
 
   return {
     pointValues,
-    uneveneness: calculateUnevenness(pointValues, (sizeX * sizeY) / 1000)
+    uneveneness: calculateUnevenness(
+      pointValues,
+      (sizeX * sizeY) / getStepping(LOD) / 100
+    )
   }
 }
 
 onmessage = e => {
+  if (e.data.type === "init") {
+    seed1 = new SimplexNoise(e.data.seed1)
+    seed2 = new SimplexNoise(e.data.seed2)
+  }
   if (e.data.type === "generateTerrain") {
     const mapData = generateTerrain(
       e.data.sizeX,
