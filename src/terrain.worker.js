@@ -70,17 +70,41 @@ const calculateUnevenness = (points, step = 2) => {
   return Math.abs(max - min) / 100
 }
 
-// TODO: LOD
-const generateTerrain = (sizeX = 100, sizeY = 100, baseX = 0, baseY = 0) => {
+// FIXME: is that enough? How about different size?
+const getStepping = (LOD, size) => {
+  switch (LOD) {
+    case 0:
+      return 1
+    case 1:
+      return 2
+    case 2:
+      return 4
+    case 3:
+      return 10
+    default:
+      10
+  }
+}
+
+const generateTerrain = (
+  sizeX = 100,
+  sizeY = 100,
+  baseX = 0,
+  baseY = 0,
+  LOD = 0
+) => {
+  const stepX = getStepping(LOD, sizeX)
+  const stepY = getStepping(LOD, sizeY)
+
   // Accomodate for the gaps between sectors
   sizeX++
   sizeY++
 
   const pointValues = new Float32Array(sizeX * sizeY)
-  for (let Y = 0; Y <= sizeY; Y++) {
-    for (let X = 0; X <= sizeX; X++) {
-      const x = X + baseX
-      const y = Y + baseY
+  for (let Y = 0; Y <= sizeY; Y += stepY) {
+    for (let X = 0; X <= sizeX; X += stepX) {
+      const x = X * stepX + baseX
+      const y = Y * stepY + baseY
       const z =
         Object.values(layers)
           .map(func => func(x, y))

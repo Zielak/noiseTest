@@ -1,0 +1,48 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #686;
+  font-family: Arial, Helvetica, sans-serif;
+  text-align: center;
+}
+#gui {
+  width: 800px;
+  height: 700px;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: calc(50% - 400px);
+  margin: 0 auto;
+
+  color: white;
+}
+
+#minimap {
+  font-family: "Courier New", Courier, monospace;
+  position: absolute;
+  top: 400px;
+  left: 400px;
+
+  .minimap_wrapper {
+    position: relative;
+  }
+
+  .sector {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border: 1px solid #aaa;
+
+    text-align: center;
+    &_position {
+    }
+    &_lod {
+    }
+
+    &--current {
+      border-color: red;
+      background: #ff66ff33;
+      color: pink;
+    }
+  }
+}

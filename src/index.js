@@ -1,4 +1,4 @@
-// import { } from '@babylonjs/core'
+import "./styles.scss"
 import { Engine } from "@babylonjs/core/Engines/engine"
 import { Scene } from "@babylonjs/core/scene"
 import { Vector3, Color3 } from "@babylonjs/core/Maths/math"
@@ -10,13 +10,16 @@ import { GridMaterial } from "@babylonjs/materials/grid"
 // Required side effects to populate the Create methods on the mesh class. Without this, the bundle would be smaller but the createXXX methods from mesh would not be accessible.
 import "@babylonjs/core/Meshes/meshBuilder"
 import { TerrainController } from "./terrainController"
+import { gui } from "./gui"
+import { applyKeyboardControls } from "./keyboardControls"
 
 const canvas = document.getElementById("renderCanvas")
 const engine = new Engine(canvas)
 var scene = new Scene(engine)
 
 const camera = new FreeCamera("camera1", new Vector3(0, 20, 0), scene)
-camera.speed = 1.5
+camera.speed = 3.5
+camera.keysDown
 
 // This targets the camera to scene origin
 camera.setTarget(new Vector3(-10, 16, -10))
@@ -28,7 +31,22 @@ light.intensity = 0.7
 light.specular = new Color3(0.1, 0.3, 0.7)
 
 // Create a grid material
-const gridMaterial = new GridMaterial("grid", scene)
+const gridMaterial = new GridMaterial("grid0", scene)
+// Blue
+gridMaterial.lineColor = new Color3(0, 1, 1)
+
+const gridMaterial1 = new GridMaterial("grid1", scene)
+// Green
+gridMaterial1.lineColor = new Color3(0, 1, 0)
+
+const gridMaterial2 = new GridMaterial("grid2", scene)
+// Yellow
+gridMaterial2.lineColor = new Color3(1, 1, 0)
+
+const gridMaterial3 = new GridMaterial("grid3", scene)
+// Pink
+gridMaterial3.lineColor = new Color3(1, 0, 1)
+
 // gridMaterial.wireframe = true
 
 const terrainController = new TerrainController(
@@ -45,10 +63,20 @@ setInterval(() => {
   terrainController.updatePlayerPosition(camera.position.clone())
 }, 2000)
 
+setInterval(() => {
+  const { x, y } = terrainController.getSectorFromVector(camera.position)
+
+  gui.updateCurrentSector(`Sector[${x}, ${y}]`)
+
+  gui.updateMinimap(terrainController.sectorsMap, x, y)
+}, 500)
+
 // Render every frame
 engine.runRenderLoop(() => {
   scene.render()
 })
+
+applyKeyboardControls(scene, camera)
 
 // const camElevation = 2.0
 // scene.registerBeforeRender(() => {

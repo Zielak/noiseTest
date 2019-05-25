@@ -75,6 +75,7 @@ class SectorsMap {
         }
       }
     }
+    return result
   }
 
   /**

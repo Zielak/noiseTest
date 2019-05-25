@@ -90,7 +90,9 @@ class TerrainController {
     this.sectorsMap
       .getSectorsToGenerate(this.lastPlayerPosition.clone())
       .forEach((lodMap, LOD) =>
-        lodMap.forEach(vec => this.requestNewSector(vec.x, vec.y, LOD))
+        lodMap.forEach(vec => {
+          this.requestNewSector(vec.x, vec.y, LOD)
+        })
       )
 
     // Fetch new sectors, which we haven't seen before
@@ -144,7 +146,7 @@ class TerrainController {
     )
     mesh.position.x = sectorX * this.sectorsMap.sizeX
     mesh.position.z = sectorY * this.sectorsMap.sizeY
-    mesh.setMaterialByID("grid")
+    mesh.setMaterialByID("grid" + LOD)
 
     const sector = this.sectorsMap.getSector(sectorX, sectorY)
     if (!sector) {
@@ -199,13 +201,6 @@ class TerrainController {
     return result
   }
 
-  getSectorFromPosition(x, z) {
-    return new Vector2(
-      Math.floor((x - this.sectorsMap.halfSizeX) / this.sectorsMap.sizeX),
-      Math.floor((z - this.sectorsMap.halfSizeY) / this.sectorsMap.sizeY)
-    )
-  }
-
   // FIXME: yup
   getHeightFromMap(posX, posZ) {
     const sectorPlz = this.getSectorFromPosition(posX, posZ)
@@ -225,6 +220,21 @@ class TerrainController {
   // TODO: Memoize
   get currentSectorY() {
     return this.sectorsMap.posY2sectorY(this.lastPlayerPosition.z)
+  }
+
+  getSectorX(value) {
+    return this.sectorsMap.posX2sectorX(value)
+  }
+
+  getSectorY(value) {
+    return this.sectorsMap.posY2sectorY(value)
+  }
+
+  getSectorFromPosition(x, z) {
+    return new Vector2(this.getSectorX(x), this.getSectorY(z))
+  }
+  getSectorFromVector(vector) {
+    return new Vector2(this.getSectorX(vector.x), this.getSectorY(vector.z))
   }
 }
 
