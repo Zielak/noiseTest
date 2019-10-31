@@ -2,7 +2,11 @@
   "compilerOptions": {
     "declaration": true,
     "esModuleInterop": true,
-    "lib": ["dom", "webworker"],
+    "experimentalDecorators": true,
+    "lib": [
+      "dom",
+      "webworker"
+    ],
     "moduleResolution": "node",
     "sourceMap": true,
     "jsx": "react",

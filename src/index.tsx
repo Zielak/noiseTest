@@ -17,21 +17,30 @@ import { Gui } from "./viewComponents/gui"
 import { TerrainController } from "./terrainController"
 import { applyKeyboardControls } from "./keyboardControls"
 import { MinimapSectorProps } from "./viewComponents/minimap"
+import { WebVRFreeCamera } from "@babylonjs/core"
 
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement
 const engine = new Engine(canvas)
-var scene = new Scene(engine)
+const scene = new Scene(engine)
 
 const camera = new FreeCamera("camera1", new Vector3(75, 20, 75), scene)
-camera.speed = 3.5
-camera.keysDown
-
-// This targets the camera to scene origin
+camera.speed = 1.5
 camera.setTarget(new Vector3(25, 16, 25))
 camera.attachControl(canvas, true)
 
+const vrCamera = new WebVRFreeCamera("cameravr", new Vector3(75, 20, 75), scene)
+
+const initVrButton = document.getElementById("initVR")
+function initVR() {
+  initVrButton.removeEventListener("click", initVR)
+
+  camera.detachControl(canvas)
+  vrCamera.attachControl(canvas, true)
+}
+initVrButton.addEventListener("click", initVR)
+
 // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
-var light = new HemisphericLight("light1", new Vector3(3, 10, 9), scene)
+const light = new HemisphericLight("light1", new Vector3(3, 10, 9), scene)
 light.intensity = 0.8
 light.specular = new Color3(0.1, 0.3, 0.7)
 
@@ -60,11 +69,15 @@ const terrainController = new TerrainController(
   {
     sectorSizeX: 200,
     sectorSizeY: 200,
-    LODDistanceModifiers: [4, 6, 10, 32],
+    LODDistanceModifiers: [3, 4, 6, 40],
     initialPlayerPos: camera.position
   },
   scene
 )
+
+window["terrain"] = terrainController
+// window["getCurrentSector"] = () =>
+//   terrainController.getSectorFromPosition(camera.position.x, camera.position.z)
 
 setInterval(() => {
   terrainController.updatePlayerPosition(camera.position.clone())
@@ -111,12 +124,12 @@ engine.runRenderLoop(() => {
 
 applyKeyboardControls(scene, camera)
 
-// const camElevation = 2.0
-// scene.registerBeforeRender(() => {
-//   camera.position.y =
-//     terrainController.getHeightFromMap(camera.position.x, camera.position.z) +
-//     camElevation
-// })
+const camElevation = 2.0
+scene.registerBeforeRender(() => {
+  camera.position.y =
+    terrainController.getHeightFromMap(camera.position.x, camera.position.z) +
+    camElevation
+})
 
 export interface EUpdateCurrentSector {
   currentX: number

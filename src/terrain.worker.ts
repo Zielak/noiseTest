@@ -3,6 +3,9 @@ import { getStepping } from "./utils/mesh"
 
 let seed1
 let seed2
+const scaleX = 2
+const scaleY = 1
+const scaleZ = 2
 
 function ridgenoise(nx, ny) {
   return 2 * (0.5 - Math.abs(0.5 - seed1.noise2D(nx, ny)))
@@ -36,7 +39,7 @@ const layers = {
           Math.sin(seed2.noise2D(x / 200, y / 1200))
         ),
         0
-      ) * 0.2
+      ) * 0.1
     )
   },
   dirtDetail: (x, y) => {
@@ -90,7 +93,9 @@ const generateTerrain = (
     for (let X = 0; X < sizeX; X += stepX) {
       const z =
         Object.values(layers)
-          .map(func => func(X + baseX, Y + baseY))
+          .map(
+            func => func((X + baseX) * scaleX, (Y + baseY) * scaleZ) * scaleY
+          )
           .reduce((prev, curr) => prev + curr, 0) * 15
 
       pointValues[X / stepX + (Y / stepY) * Math.ceil(sizeY / stepY)] = z

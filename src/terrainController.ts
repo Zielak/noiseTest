@@ -3,6 +3,7 @@ import { TerrainSector } from "./sector"
 import { SectorsMap } from "./sectorsMap"
 import { getStepping } from "./utils/mesh"
 import { LoadBalancer } from "./loadBalancer"
+import { wrap } from "./utils/numbers"
 
 class TerrainController {
   lastPlayerPosition: Vector3
@@ -11,14 +12,14 @@ class TerrainController {
   sectorsMap: SectorsMap
   terrainWorkers: LoadBalancer
 
-  /**
-   * @param {TerrainControllerOptions} options
-   * @param {Scene} scene
-   */
-  constructor(
-    { sectorSizeX, sectorSizeY, LODDistanceModifiers, initialPlayerPos },
-    scene
-  ) {
+  constructor(options: TerrainControllerOptions, scene: Scene) {
+    const {
+      sectorSizeX,
+      sectorSizeY,
+      LODDistanceModifiers,
+      initialPlayerPos
+    } = options
+
     this.LODDistanceModifiers = LODDistanceModifiers
 
     this.scene = scene
@@ -49,13 +50,6 @@ class TerrainController {
       ? initialPlayerPos.clone()
       : Vector3.Zero()
 
-    const camElevation = 4.0
-    scene.registerBeforeRender(() => {
-      // camera.position.y =
-      //   terrain.getHeightFromMap(camera.position.x, camera.position.z) +
-      //   camElevation
-    })
-
     this.updateTerrain()
   }
 
@@ -67,7 +61,7 @@ class TerrainController {
    * @param {number} LOD level of detail for this sector
    */
   requestNewSector(sectorX, sectorY, LOD) {
-    console.log(` <= requesting new sector [${sectorX},${sectorY}_${LOD}]`)
+    console.debug(` <= requesting new sector [${sectorX},${sectorY}_${LOD}]`)
 
     this.terrainWorkers.postMessage({
       type: "generateTerrain",
@@ -130,7 +124,7 @@ class TerrainController {
     // The more ground is unevenen, the more detail needs to be seen
     const lodBase =
       (this.sectorsMap.halfSizeX + this.sectorsMap.halfSizeY) / 1.5
-    const exp = uneveneness + 1
+    const exp = uneveneness + 0.5
 
     const LODDistances = this.LODDistanceModifiers.map(
       distance => lodBase * (distance * exp)
@@ -158,7 +152,7 @@ class TerrainController {
       // Update existing with new mesh data
       sector.setMeshLODAtDistance(LOD, mesh, LODDistances[LOD])
     }
-    console.log(
+    console.debug(
       ` => Got data [${sectorX},${sectorY}_${LOD}], ${
         pointValues.length
       } points, uneveneness: ${uneveneness.toFixed(4)}`
@@ -190,12 +184,25 @@ class TerrainController {
     return result
   }
 
-  // FIXME: yup
+  /**
+   * Gets terrain height for given world position
+   * @param posX
+   * @param posZ
+   * @returns {number} height or 0 if given position isn't on any sector
+   */
   getHeightFromMap(posX, posZ) {
-    const sectorPlz = this.getSectorFromPosition(posX, posZ)
-    return this.sectorsMap
-      .getSector(sectorPlz.x, sectorPlz.y)
-      .getHeight(posX, posZ)
+    // console.log("getHeightFromMap CALLED")
+
+    const sector = this.getSectorFromPosition(posX, posZ)
+
+    if (sector) {
+      return sector.getHeight(
+        wrap(posX, this.sectorsMap.sizeX),
+        wrap(posZ, this.sectorsMap.sizeY)
+      )
+    } else {
+      return 0
+    }
   }
 
   // TODO: Memoize
@@ -216,7 +223,8 @@ class TerrainController {
   }
 
   getSectorFromPosition(x, z) {
-    return new Vector2(this.getSectorX(x), this.getSectorY(z))
+    const pos = new Vector2(this.getSectorX(x), this.getSectorY(z))
+    return this.sectorsMap.getSector(pos.x, pos.y)
   }
   getSectorFromVector(vector) {
     return new Vector2(this.getSectorX(vector.x), this.getSectorY(vector.z))
@@ -229,6 +237,6 @@ export type TerrainControllerOptions = {
   sectorSizeX: number
   sectorSizeY: number
   LODDistanceModifiers: number[]
-  initialPlayerPos?: Vector3
+  initialPlayerPos: Vector3
   viewDistance?: number
 }

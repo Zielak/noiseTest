@@ -32,6 +32,7 @@ class SectorsMap {
       this.sectors[sector.y] = []
     }
     this.sectors[sector.y][sector.x] = sector
+    sector._parent = this
   }
 
   /**
@@ -147,11 +148,11 @@ class SectorsMap {
                   e => e.x === parseInt(x) && e.y === parseInt(y)
                 )
               ) {
-                console.warn("same sector already exists in result[lod]")
+                console.debug("same sector already exists in result[lod]")
                 continue
               }
               if (this.sectorHasLOD(i, j, lod)) {
-                console.warn("sector already has the same LOD")
+                console.debug("sector already has the same LOD")
                 continue
               }
 

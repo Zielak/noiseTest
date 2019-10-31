@@ -9,7 +9,7 @@ class LoadBalancer {
       this.runningJobs[idx] = 0
       worker.onmessage = e => {
         this.runningJobs[idx]--
-        console.log(`[ ${idx} ] Job complete `)
+        console.debug(`[ ${idx} ] Job complete `)
         onmessage(e)
       }
     })
@@ -22,7 +22,7 @@ class LoadBalancer {
         vacant = parseInt(i)
       }
     }
-    console.log(`[ ${vacant} ] Sending task to `)
+    console.debug(`[ ${vacant} ] Sending task to `)
     this.runningJobs[vacant]++
     this.workers[vacant].postMessage(data)
   }
