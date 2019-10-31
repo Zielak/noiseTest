@@ -8,7 +8,7 @@ import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight"
 import { GridMaterial } from "@babylonjs/materials/grid"
 
 // Required side effects to populate the Create methods on the mesh class. Without this, the bundle would be smaller but the createXXX methods from mesh would not be accessible.
-import "@babylonjs/core/Meshes/meshBuilder"
+// import "@babylonjs/core/Meshes/meshBuilder"
 
 import ReactDOM from "react-dom"
 import React from "react"
@@ -32,7 +32,7 @@ camera.attachControl(canvas, true)
 
 // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
 var light = new HemisphericLight("light1", new Vector3(3, 10, 9), scene)
-light.intensity = 0.7
+light.intensity = 0.8
 light.specular = new Color3(0.1, 0.3, 0.7)
 
 // Create a grid material
