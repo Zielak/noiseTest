@@ -6,10 +6,10 @@ export const getStepping = (LOD, size?) => {
     case 1:
       return 2
     case 2:
-      return 4
+      return 8
     case 3:
-      return 10
+      return 20
     default:
-      10
+      20
   }
 }
